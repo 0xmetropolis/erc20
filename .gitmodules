@@ -4,3 +4,6 @@
 [submodule "lib/gaslite-core"]
 	path = lib/gaslite-core
 	url = https://github.com/PopPunkLLC/gaslite-core
+[submodule "lib/v3-periphery"]
+	path = lib/v3-periphery
+	url = https://github.com/Uniswap/v3-periphery
