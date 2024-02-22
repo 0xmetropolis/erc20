@@ -1,40 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
-
-struct MintParams {
-    address token0;
-    address token1;
-    uint24 fee;
-    int24 tickLower;
-    int24 tickUpper;
-    uint256 amount0Desired;
-    uint256 amount1Desired;
-    uint256 amount0Min;
-    uint256 amount1Min;
-    address recipient;
-    uint256 deadline;
-}
-
-interface INonfungiblePositionManager {
-    function mint(
-        MintParams calldata params
-    )
-        external
-        payable
-        returns (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        );
-
-    function createAndInitializePoolIfNecessary(
-        address token0,
-        address token1,
-        uint24 fee,
-        uint160 sqrtPriceX96
-    ) external payable returns (address pool);
-}
+pragma solidity ^0.8.4;
 
 /// @notice This is a mock contract of the ERC20 standard for testing purposes only, it SHOULD NOT be used in production.
 /// @dev Forked from: https://github.com/transmissions11/solmate/blob/0384dbaaa4fcb5715738a9254a7c0a4cb62cf458/src/tokens/ERC20.sol
@@ -140,7 +105,6 @@ contract SolmateERC20 {
         uint256 amount
     ) public virtual returns (bool) {
         uint256 allowed = allowance[from][msg.sender]; // Saves gas for limited approvals.
-
         if (allowed != ~uint256(0))
             allowance[from][msg.sender] = _sub(allowed, amount);
 
@@ -280,94 +244,5 @@ contract SolmateERC20 {
             pureChainId := fnIn
         }
         chainId = pureChainId();
-    }
-}
-
-contract MetalToken is SolmateERC20 {
-    address public owner;
-
-    constructor(address _owner, string memory _name, string memory _symbol) {
-        owner = _owner;
-        super.initialize(_name, _symbol, 18);
-        // mints to the TokenDeployer
-        _mint(msg.sender, 10000000000000000000000000000);
-    }
-
-    function mint(address to, uint256 amount) public {
-        require(msg.sender == owner, "MetalToken: only owner");
-        _mint(to, amount);
-    }
-}
-
-uint256 constant AMOUNT = 9999999999000000000000000000;
-
-contract MetalTokenDeployer {
-    uint160 public constant INITIAL_PRICE = 2505288394476896181651817945149;
-    INonfungiblePositionManager public immutable nonfungiblePositionManager;
-    // non fungible position manager:
-    /**
-    sepolia 0x1238536071E1c677A632429e3655c799b22cDA52
-    base 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1
-    everywhere else 0xC36442b4a4522E871399CD717aBDD847Ab11FE88
-     */
-    mapping(uint256 => address) internal WETHTOKENS;
-
-    constructor(address _nonfungiblePositionManager) {
-        nonfungiblePositionManager = INonfungiblePositionManager(
-            _nonfungiblePositionManager
-        );
-        WETHTOKENS[8453] = 0x4200000000000000000000000000000000000006;
-    }
-
-    function deploy(
-        // address owner,
-        // address token,
-        string memory _name,
-        string memory _symbol,
-        // todo: remove the fee
-        uint24 fee
-    ) public returns (uint256, uint128, uint256, uint256, address, address) {
-        MetalToken token = new MetalToken(msg.sender, _name, _symbol);
-        token.approve(address(nonfungiblePositionManager), AMOUNT);
-
-        // get the weth address for the chain id
-        address weth = WETHTOKENS[block.chainid];
-        // sort the tokens
-        (address token0, address token1) = address(token) < weth
-            ? (address(token), weth)
-            : (weth, address(token));
-
-        // call createAndInitializePoolIfNecessary
-        address pool = nonfungiblePositionManager
-            .createAndInitializePoolIfNecessary(
-                token0,
-                token1,
-                fee,
-                INITIAL_PRICE
-            );
-
-        // mint the position
-        MintParams memory mintParams = MintParams({
-            token0: token0,
-            token1: token1,
-            fee: fee,
-            tickLower: -138163,
-            tickUpper: 69080,
-            amount0Desired: 0,
-            amount1Desired: AMOUNT,
-            amount0Min: 0,
-            amount1Min: AMOUNT,
-            deadline: type(uint256).max,
-            recipient: msg.sender
-        });
-
-        (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        ) = nonfungiblePositionManager.mint(mintParams);
-
-        return (tokenId, liquidity, amount0, amount1, pool, address(token));
     }
 }
