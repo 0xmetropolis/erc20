@@ -301,7 +301,7 @@ contract MetalToken is SolmateERC20 {
 
 uint256 constant AMOUNT = 9999999999000000000000000000;
 
-contract MetalTokenDeployer {
+contract TokenDeployer {
     uint160 public constant INITIAL_PRICE = 2505288394476896181651817945149;
     INonfungiblePositionManager public immutable nonfungiblePositionManager;
     // non fungible position manager:
@@ -320,22 +320,18 @@ contract MetalTokenDeployer {
     }
 
     function deploy(
-        // address owner,
-        // address token,
         string memory _name,
-        string memory _symbol,
-        // todo: remove the fee
-        uint24 fee
+        string memory _symbol
     ) public returns (uint256, uint128, uint256, uint256, address, address) {
         MetalToken token = new MetalToken(msg.sender, _name, _symbol);
         token.approve(address(nonfungiblePositionManager), AMOUNT);
 
+        uint24 fee = 0;
+
         // get the weth address for the chain id
         address weth = WETHTOKENS[block.chainid];
-        // sort the tokens
-        (address token0, address token1) = address(token) < weth
-            ? (address(token), weth)
-            : (weth, address(token));
+
+        (address token0, address token1) = (weth, address(token));
 
         // call createAndInitializePoolIfNecessary
         address pool = nonfungiblePositionManager

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MetalTokenDeployer} from "../src/MetalTokenDeployer.sol";
+import {TokenDeployer} from "../src/MetalTokenDeployer.sol";
 // import {TestToken} from "../src/TestToken.sol";
 // import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
@@ -11,16 +11,10 @@ uint256 constant mintAmount = 10000000000000000000000000000;
 contract DeployToken is Script {
     function setUp() public {}
 
-    function deployMetalTokenDeployer() public {
-        vm.broadcast();
-        MetalTokenDeployer deployer = new MetalTokenDeployer{salt: 1}();
-        console.log("Deployer address: ", address(deployer));
-    }
-
-    function deployToken() public {
+    function run() public {
         // metal deployer on base
-        MetalTokenDeployer deployer = MetalTokenDeployer{salt: 1}(
-            0xF63297b3793E045AC50a7a9670DB29dB38424ED8
+        TokenDeployer deployer = TokenDeployer(
+            0xb0d17F33B539833dc7695bF7418BcEDf4Ce9f3Cd
         );
 
         vm.broadcast();
@@ -31,7 +25,7 @@ contract DeployToken is Script {
             uint256 amount1,
             address pool,
             address tokenOut
-        ) = deployer.deploy("MyToken", "MYTKN", 100);
+        ) = deployer.deploy("Token", "TKN");
 
         console.log("tokenId: ", tokenId);
         console.log("liquidity: ", liquidity);
