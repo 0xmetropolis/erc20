@@ -14,7 +14,7 @@ contract DeployToken is Script {
     function run() public {
         // metal deployer on base
         TokenDeployer deployer = TokenDeployer(
-            0xb0d17F33B539833dc7695bF7418BcEDf4Ce9f3Cd
+            0x6971E89c4367C05016558579137B3C795BA7381B
         );
 
         vm.broadcast();

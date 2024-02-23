@@ -326,19 +326,17 @@ contract TokenDeployer {
         MetalToken token = new MetalToken(msg.sender, _name, _symbol);
         token.approve(address(nonfungiblePositionManager), AMOUNT);
 
-        uint24 fee = 0;
-
         // get the weth address for the chain id
         address weth = WETHTOKENS[block.chainid];
 
         (address token0, address token1) = (weth, address(token));
-
+        
         // call createAndInitializePoolIfNecessary
         address pool = nonfungiblePositionManager
             .createAndInitializePoolIfNecessary(
                 token0,
                 token1,
-                fee,
+                100,
                 INITIAL_PRICE
             );
 
@@ -346,7 +344,7 @@ contract TokenDeployer {
         MintParams memory mintParams = MintParams({
             token0: token0,
             token1: token1,
-            fee: fee,
+            fee: 100,
             tickLower: -138163,
             tickUpper: 69080,
             amount0Desired: 0,
