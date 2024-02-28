@@ -94,7 +94,7 @@ contract TokenFactory {
             nonFungiblePositionManager = INonfungiblePositionManager(0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1);
         }
         // base sepolia
-        if (chainId == 8453) {
+        if (chainId == 84532) {
             weth = 0x4200000000000000000000000000000000000006;
             nonFungiblePositionManager = INonfungiblePositionManager(0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2);
         }
@@ -146,7 +146,6 @@ contract TokenFactory {
 
         // approve the non-fungible position mgr for the pool liquidity amount
         InstantLiquidityToken(token).approve(address(nonfungiblePositionManager), POOL_AMOUNT);
-
         (INonfungiblePositionManager.MintParams memory mintParams, uint160 initialSquareRootPrice) =
             _getMintParams(token, weth);
 

@@ -8,7 +8,7 @@ contract DeployToken is Script {
 
     function run() public {
         vm.broadcast();
-        _run(0x48A470d5D014F52eC22d8415238E3AA0D4F159DA);
+        _run(0xa17a469F46181F231EB717c944a052c4bb9bE8E0);
     }
     function _run(address _factory) public returns (InstantLiquidityToken) {
         TokenFactory factory = TokenFactory(_factory);
@@ -19,26 +19,3 @@ contract DeployToken is Script {
         return token;
     }
 }
-
-/*
-import {Script, console} from "forge-std/Script.sol";
-import {MetalTokenDeployer, InstantLiquidityToken} from "../src/MetalTokenDeployer.sol";
-
-contract DeployToken is Script {
-    MetalTokenDeployer deployer = MetalTokenDeployer(0xA423F5A2E6194cF1b080a535158094BBbE619E58);
-
-    function run() public returns (InstantLiquidityToken) {
-        vm.broadcast();
-        _run();
-    }
-
-    function _run() public returns (InstantLiquidityToken) {
-        InstantLiquidityToken token = deployer.deploy("Token", "TKN");
-
-        console.log("token", address(token));
-
-        return token;
-    }
-}
-
-*/

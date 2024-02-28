@@ -18,14 +18,8 @@ contract TestEndToEndDeployment is Test {
         deployToken = new DeployToken();
     }
     function test_endToEnd() public {
-        address owner = address(0xa11c3);
-        vm.label(owner, "ALICE");
-
         TokenFactory factory = deployFactory.run();
 
-        for(uint256 i; i < 50; i++) {
-            console.log("i", i);
-            deployToken._run(address(factory));
-        }
+        for(uint256 i; i < 50; i++) deployToken._run(address(factory));
     }
 }
