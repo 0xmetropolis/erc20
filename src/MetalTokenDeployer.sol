@@ -1,367 +1,151 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.20;
 
-struct MintParams {
-    address token0;
-    address token1;
-    uint24 fee;
-    int24 tickLower;
-    int24 tickUpper;
-    uint256 amount0Desired;
-    uint256 amount1Desired;
-    uint256 amount0Min;
-    uint256 amount1Min;
-    address recipient;
-    uint256 deadline;
-}
+import {LIQUIDITY_TOKEN_SALT} from "src/Constants.sol";
+import {InstantLiquidityToken} from "src/InstantLiquidityToken.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 interface INonfungiblePositionManager {
-    function mint(
-        MintParams calldata params
-    )
+    struct MintParams {
+        address token0;
+        address token1;
+        uint24 fee;
+        int24 tickLower;
+        int24 tickUpper;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        address recipient;
+        uint256 deadline;
+    }
+
+    function mint(MintParams calldata params)
         external
         payable
-        returns (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        );
+        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
 
-    function createAndInitializePoolIfNecessary(
-        address token0,
-        address token1,
-        uint24 fee,
-        uint160 sqrtPriceX96
-    ) external payable returns (address pool);
+    function createAndInitializePoolIfNecessary(address token0, address token1, uint24 fee, uint160 sqrtPriceX96)
+        external
+        payable
+        returns (address pool);
 }
 
-/// @notice This is a mock contract of the ERC20 standard for testing purposes only, it SHOULD NOT be used in production.
-/// @dev Forked from: https://github.com/transmissions11/solmate/blob/0384dbaaa4fcb5715738a9254a7c0a4cb62cf458/src/tokens/ERC20.sol
-contract SolmateERC20 {
-    /*//////////////////////////////////////////////////////////////
-                                 EVENTS
-    //////////////////////////////////////////////////////////////*/
+contract MetalTokenDeployer {
+    error UNSUPPORTED_CHAIN();
 
-    event Transfer(address indexed from, address indexed to, uint256 amount);
+    InstantLiquidityToken public immutable instantLiquidityToken =
+        new InstantLiquidityToken{salt: LIQUIDITY_TOKEN_SALT}();
 
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 amount
-    );
+    uint160 internal constant INITIAL_SQRT_PRICE = 2505288394476896181651817945149;
+    uint256 internal constant MINT_AMOUNT = 9999999999000000000000000000;
 
-    /*//////////////////////////////////////////////////////////////
-                            METADATA STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    string public name;
-
-    string public symbol;
-
-    uint8 public decimals;
-
-    /*//////////////////////////////////////////////////////////////
-                              ERC20 STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    uint256 public totalSupply;
-
-    mapping(address => uint256) public balanceOf;
-
-    mapping(address => mapping(address => uint256)) public allowance;
-
-    /*//////////////////////////////////////////////////////////////
-                            EIP-2612 STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    uint256 internal INITIAL_CHAIN_ID;
-
-    bytes32 internal INITIAL_DOMAIN_SEPARATOR;
-
-    mapping(address => uint256) public nonces;
-
-    /*//////////////////////////////////////////////////////////////
-                               INITIALIZE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev A bool to track whether the contract has been initialized.
-    bool private initialized;
-
-    /// @dev To hide constructor warnings across solc versions due to different constructor visibility requirements and
-    /// syntaxes, we add an initialization function that can be called only once.
-    function initialize(
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    ) public {
-        require(!initialized, "ALREADY_INITIALIZED");
-
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
-
-        INITIAL_CHAIN_ID = _pureChainId();
-        INITIAL_DOMAIN_SEPARATOR = computeDomainSeparator();
-
-        initialized = true;
+    constructor() {
+        uint256 chainId = block.chainid;
+        if (
+            // mainnet
+            chainId != 1
+            // goerli
+            && chainId != 5
+            // arbitrum
+            && chainId != 42161
+            // optimism
+            && chainId != 10
+            // polygon
+            && chainId != 137
+            // bnb
+            && chainId != 56
+            // base
+            && chainId != 8453
+            // base sepolia
+            && chainId != 84532
+            // sepolia
+            && chainId != 11155111
+        ) revert UNSUPPORTED_CHAIN();
     }
 
-    /*//////////////////////////////////////////////////////////////
-                               ERC20 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function approve(
-        address spender,
-        uint256 amount
-    ) public virtual returns (bool) {
-        allowance[msg.sender][spender] = amount;
-
-        emit Approval(msg.sender, spender, amount);
-
-        return true;
-    }
-
-    function transfer(
-        address to,
-        uint256 amount
-    ) public virtual returns (bool) {
-        balanceOf[msg.sender] = _sub(balanceOf[msg.sender], amount);
-        balanceOf[to] = _add(balanceOf[to], amount);
-
-        emit Transfer(msg.sender, to, amount);
-
-        return true;
-    }
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public virtual returns (bool) {
-        uint256 allowed = allowance[from][msg.sender]; // Saves gas for limited approvals.
-
-        if (allowed != ~uint256(0))
-            allowance[from][msg.sender] = _sub(allowed, amount);
-
-        balanceOf[from] = _sub(balanceOf[from], amount);
-        balanceOf[to] = _add(balanceOf[to], amount);
-
-        emit Transfer(from, to, amount);
-
-        return true;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                             EIP-2612 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public virtual {
-        require(deadline >= block.timestamp, "PERMIT_DEADLINE_EXPIRED");
-
-        address recoveredAddress = ecrecover(
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    DOMAIN_SEPARATOR(),
-                    keccak256(
-                        abi.encode(
-                            keccak256(
-                                "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-                            ),
-                            owner,
-                            spender,
-                            value,
-                            nonces[owner]++,
-                            deadline
-                        )
-                    )
-                )
-            ),
-            v,
-            r,
-            s
-        );
-
-        require(
-            recoveredAddress != address(0) && recoveredAddress == owner,
-            "INVALID_SIGNER"
-        );
-
-        allowance[recoveredAddress][spender] = value;
-
-        emit Approval(owner, spender, value);
-    }
-
-    function DOMAIN_SEPARATOR() public view virtual returns (bytes32) {
-        return
-            _pureChainId() == INITIAL_CHAIN_ID
-                ? INITIAL_DOMAIN_SEPARATOR
-                : computeDomainSeparator();
-    }
-
-    function computeDomainSeparator() internal view virtual returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    keccak256(
-                        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                    ),
-                    keccak256(bytes(name)),
-                    keccak256("1"),
-                    _pureChainId(),
-                    address(this)
-                )
-            );
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        INTERNAL MINT/BURN LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function _mint(address to, uint256 amount) internal virtual {
-        totalSupply = _add(totalSupply, amount);
-        balanceOf[to] = _add(balanceOf[to], amount);
-
-        emit Transfer(address(0), to, amount);
-    }
-
-    function _burn(address from, uint256 amount) internal virtual {
-        balanceOf[from] = _sub(balanceOf[from], amount);
-        totalSupply = _sub(totalSupply, amount);
-
-        emit Transfer(from, address(0), amount);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        INTERNAL SAFE MATH LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function _add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "ERC20: addition overflow");
-        return c;
-    }
-
-    function _sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(a >= b, "ERC20: subtraction underflow");
-        return a - b;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                HELPERS
-    //////////////////////////////////////////////////////////////*/
-
-    // We use this complex approach of `_viewChainId` and `_pureChainId` to ensure there are no
-    // compiler warnings when accessing chain ID in any solidity version supported by forge-std. We
-    // can't simply access the chain ID in a normal view or pure function because the solc View Pure
-    // Checker changed `chainid` from pure to view in 0.8.0.
-    function _viewChainId() private view returns (uint256 chainId) {
-        // Assembly required since `block.chainid` was introduced in 0.8.0.
-        assembly {
-            chainId := chainid()
-        }
-
-        address(this); // Silence warnings in older Solc versions.
-    }
-
-    function _pureChainId() private pure returns (uint256 chainId) {
-        function() internal view returns (uint256) fnIn = _viewChainId;
-        function() internal pure returns (uint256) pureChainId;
-        assembly {
-            pureChainId := fnIn
-        }
-        chainId = pureChainId();
-    }
-}
-
-contract MetalToken is SolmateERC20 {
-    address public owner;
-
-    constructor(address _owner, string memory _name, string memory _symbol) {
-        owner = _owner;
-        super.initialize(_name, _symbol, 18);
-        // mints to the TokenDeployer
-        _mint(msg.sender, 10000000000000000000000000000);
-    }
-
-    function mint(address to, uint256 amount) public {
-        require(msg.sender == owner, "MetalToken: only owner");
-        _mint(to, amount);
-    }
-}
-
-uint256 constant AMOUNT = 9999999999000000000000000000;
-
-contract TokenDeployer {
-    uint160 public constant INITIAL_PRICE = 2505288394476896181651817945149;
-    INonfungiblePositionManager public immutable nonfungiblePositionManager;
-    // non fungible position manager:
     /**
-    sepolia 0x1238536071E1c677A632429e3655c799b22cDA52
-    base 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1
-    everywhere else 0xC36442b4a4522E871399CD717aBDD847Ab11FE88
+     * @dev sourced from: https://docs.uniswap.org/contracts/v3/reference/deployments
      */
-    mapping(uint256 => address) internal WETHTOKENS;
+    function _getAddresses()
+        internal
+        view
+        returns (address weth, INonfungiblePositionManager nonFungiblePositionManager)
+    {
+        uint256 chainId = block.chainid;
+        // Mainnet, Goerli, Arbitrum, Optimism, Polygon
+        nonFungiblePositionManager = INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
 
-    constructor(address _nonfungiblePositionManager) {
-        nonfungiblePositionManager = INonfungiblePositionManager(
-            _nonfungiblePositionManager
-        );
-        WETHTOKENS[8453] = 0x4200000000000000000000000000000000000006;
+        // mainnet
+        if (chainId == 1) weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        // goerli
+        if (chainId == 5) weth = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
+        // arbitrum
+        if (chainId == 42161) weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        // optimism
+        if (chainId == 10) weth = 0x4200000000000000000000000000000000000006;
+        // polygon
+        if (chainId == 137) weth = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
+        // bnb
+        if (chainId == 56) {
+            weth = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+            nonFungiblePositionManager = INonfungiblePositionManager(0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613);
+        }
+        // base
+        if (chainId == 8453) {
+            weth = 0x4200000000000000000000000000000000000006;
+            nonFungiblePositionManager = INonfungiblePositionManager(0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1);
+        }
+        // base sepolia
+        if (chainId == 8453) {
+            weth = 0x4200000000000000000000000000000000000006;
+            nonFungiblePositionManager = INonfungiblePositionManager(0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2);
+        }
+        // sepolia
+        if (chainId == 11155111) {
+            weth = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
+            nonFungiblePositionManager = INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
+        }
     }
 
-    function deploy(
-        string memory _name,
-        string memory _symbol
-    ) public returns (uint256, uint128, uint256, uint256, address, address) {
-        MetalToken token = new MetalToken(msg.sender, _name, _symbol);
-        token.approve(address(nonfungiblePositionManager), AMOUNT);
+    function deploy(string memory _name, string memory _symbol) public returns (InstantLiquidityToken) 
+    // returns (uint256, uint128, uint256, uint256, address, address)
+    {
+        // get the addresses per-chain
+        (address weth, INonfungiblePositionManager nonfungiblePositionManager) = _getAddresses();
 
-        // get the weth address for the chain id
-        address weth = WETHTOKENS[block.chainid];
+        // deploy a new token
+        address token = Clones.clone(address(instantLiquidityToken));
+        InstantLiquidityToken(token).initialize(msg.sender, _name, _symbol);
 
-        (address token0, address token1) = (weth, address(token));
-        
+        // approve the non-fungible position mgr for the mint amount
+        InstantLiquidityToken(token).approve(address(nonfungiblePositionManager), MINT_AMOUNT);
+
+        // sort the tokens and the amounts
+        bool tokenIsToken0 = token < weth;
+        (address token0, address token1) = tokenIsToken0 ? (token, weth) : (weth, token);
+        (uint256 amt0, uint256 amt1) = tokenIsToken0 ? (MINT_AMOUNT, uint256(0)) : (uint256(0), MINT_AMOUNT);
+
         // call createAndInitializePoolIfNecessary
-        address pool = nonfungiblePositionManager
-            .createAndInitializePoolIfNecessary(
-                token0,
-                token1,
-                100,
-                INITIAL_PRICE
-            );
+        nonfungiblePositionManager.createAndInitializePoolIfNecessary(token0, token1, 100, INITIAL_SQRT_PRICE);
 
         // mint the position
-        MintParams memory mintParams = MintParams({
-            token0: token0,
-            token1: token1,
-            fee: 100,
-            tickLower: -138163,
-            tickUpper: 69080,
-            amount0Desired: 0,
-            amount1Desired: AMOUNT,
-            amount0Min: 0,
-            amount1Min: AMOUNT,
-            deadline: type(uint256).max,
-            recipient: msg.sender
-        });
+        nonfungiblePositionManager.mint(
+            INonfungiblePositionManager.MintParams({
+                token0: token0,
+                token1: token1,
+                fee: 100,
+                tickLower: -138163,
+                tickUpper: 69080,
+                amount0Desired: amt0,
+                amount1Desired: amt1,
+                amount0Min: amt0,
+                amount1Min: amt1,
+                deadline: block.timestamp,
+                recipient: address(this)
+            })
+        );
 
-        (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        ) = nonfungiblePositionManager.mint(mintParams);
-
-        return (tokenId, liquidity, amount0, amount1, pool, address(token));
+        return InstantLiquidityToken(token);
     }
 }
