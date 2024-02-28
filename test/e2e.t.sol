@@ -3,25 +3,29 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import {DeployDeployer} from "script/DeployDeployer.s.sol";
+import {DeployFactory} from "script/DeployFactory.s.sol";
 import {DeployToken} from "script/DeployToken.s.sol";
 
 import {InstantLiquidityToken} from "../src/InstantLiquidityToken.sol";
-import {MetalTokenDeployer} from "../src/MetalTokenDeployer.sol";
+import {TokenFactory} from "../src/TokenFactory.sol";
 
 contract TestEndToEndDeployment is Test {
-    DeployDeployer public deployDeployer;
+    DeployFactory public deployFactory;
     DeployToken public deployToken;
 
     function setUp() public {
-        deployDeployer = new DeployDeployer();
+        deployFactory = new DeployFactory();
         deployToken = new DeployToken();
     }
     function test_endToEnd() public {
         address owner = address(0xa11c3);
         vm.label(owner, "ALICE");
 
-        MetalTokenDeployer deployer = deployDeployer.run();
-        InstantLiquidityToken token = deployToken.run();
+        TokenFactory factory = deployFactory.run();
+
+        for(uint256 i; i < 50; i++) {
+            console.log("i", i);
+            deployToken._run(address(factory));
+        }
     }
 }

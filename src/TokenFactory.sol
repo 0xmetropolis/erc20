@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {LIQUIDITY_TOKEN_SALT} from "src/Constants.sol";
+import {LIQUIDITY_TOKEN_SALT, POOL_AMOUNT} from "src/Constants.sol";
 import {InstantLiquidityToken} from "src/InstantLiquidityToken.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
@@ -31,14 +31,11 @@ interface INonfungiblePositionManager {
         returns (address pool);
 }
 
-contract MetalTokenDeployer {
+contract TokenFactory {
     error UNSUPPORTED_CHAIN();
 
     InstantLiquidityToken public immutable instantLiquidityToken =
         new InstantLiquidityToken{salt: LIQUIDITY_TOKEN_SALT}();
-
-    uint160 internal constant INITIAL_SQRT_PRICE = 2505288394476896181651817945149;
-    uint256 internal constant MINT_AMOUNT = 9999999999000000000000000000;
 
     constructor() {
         uint256 chainId = block.chainid;
@@ -108,43 +105,56 @@ contract MetalTokenDeployer {
         }
     }
 
-    function deploy(string memory _name, string memory _symbol) public returns (InstantLiquidityToken) 
-    // returns (uint256, uint128, uint256, uint256, address, address)
+    function _getMintParams(address token, address weth)
+        internal
+        view
+        returns (INonfungiblePositionManager.MintParams memory params, uint160 initialSqrtPrice)
     {
+        bool tokenIsLessThanWeth = token < weth;
+        (address token0, address token1) = tokenIsLessThanWeth ? (token, weth) : (weth, token);
+        (int24 tickLower, int24 tickUpper) = tokenIsLessThanWeth ? (-68128, int24(184216)) : (-184217, int24(68127));
+        (uint256 amt0, uint256 amt1) =
+            tokenIsLessThanWeth ? (uint256(9999999999999999999999999986), uint256(0)) : (uint256(0), uint256(9999999999999999999999999981));
+
+        params = INonfungiblePositionManager.MintParams({
+            token0: token0,
+            token1: token1,
+            fee: 100,
+            tickLower: tickLower,
+            tickUpper: tickUpper,
+            amount0Desired: amt0,
+            amount0Min: amt0,
+            amount1Desired: amt1,
+            amount1Min: amt1,
+            deadline: block.timestamp,
+            recipient: address(this)
+        });
+
+        initialSqrtPrice = tokenIsLessThanWeth ? 2505290050365003892876723467 : 2505413655765166104103837312489;
+    }
+
+    function deploy(string memory _name, string memory _symbol) public returns (InstantLiquidityToken) {
         // get the addresses per-chain
         (address weth, INonfungiblePositionManager nonfungiblePositionManager) = _getAddresses();
 
-        // deploy a new token
+        // deploy and initialize a new token
         address token = Clones.clone(address(instantLiquidityToken));
         InstantLiquidityToken(token).initialize(msg.sender, _name, _symbol);
 
-        // approve the non-fungible position mgr for the mint amount
-        InstantLiquidityToken(token).approve(address(nonfungiblePositionManager), MINT_AMOUNT);
-
         // sort the tokens and the amounts
-        bool tokenIsToken0 = token < weth;
-        (address token0, address token1) = tokenIsToken0 ? (token, weth) : (weth, token);
-        (uint256 amt0, uint256 amt1) = tokenIsToken0 ? (MINT_AMOUNT, uint256(0)) : (uint256(0), MINT_AMOUNT);
+        (address token0, address token1) = token < weth ? (token, weth) : (weth, token);
 
-        // call createAndInitializePoolIfNecessary
-        nonfungiblePositionManager.createAndInitializePoolIfNecessary(token0, token1, 100, INITIAL_SQRT_PRICE);
+        // approve the non-fungible position mgr for the pool liquidity amount
+        InstantLiquidityToken(token).approve(address(nonfungiblePositionManager), POOL_AMOUNT);
+
+        (INonfungiblePositionManager.MintParams memory mintParams, uint160 initialSquareRootPrice) =
+            _getMintParams(token, weth);
+
+        // create the pool
+        nonfungiblePositionManager.createAndInitializePoolIfNecessary(token0, token1, 100, initialSquareRootPrice);
 
         // mint the position
-        nonfungiblePositionManager.mint(
-            INonfungiblePositionManager.MintParams({
-                token0: token0,
-                token1: token1,
-                fee: 100,
-                tickLower: -138163,
-                tickUpper: 69080,
-                amount0Desired: amt0,
-                amount1Desired: amt1,
-                amount0Min: amt0,
-                amount1Min: amt1,
-                deadline: block.timestamp,
-                recipient: address(this)
-            })
-        );
+        nonfungiblePositionManager.mint(mintParams);
 
         return InstantLiquidityToken(token);
     }
