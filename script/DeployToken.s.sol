@@ -8,7 +8,7 @@ contract DeployToken is Script {
 
     function run() public {
         vm.broadcast();
-        _run(0xa17a469F46181F231EB717c944a052c4bb9bE8E0);
+        _run(0x5eD5A9b33019a2C08AAD51dD8ebbB75acA70c6A1);
     }
     function _run(address _factory) public returns (InstantLiquidityToken) {
         TokenFactory factory = TokenFactory(_factory);
