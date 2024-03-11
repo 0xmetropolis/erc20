@@ -12,7 +12,7 @@ contract DeployToken is Script {
     }
     function _run(address _factory) public returns (InstantLiquidityToken) {
         TokenFactory factory = TokenFactory(_factory);
-        InstantLiquidityToken token = factory.deploy("Token", "TKN");
+        InstantLiquidityToken token = factory.deploy("", "");
 
         console.log("token", address(token));
 
