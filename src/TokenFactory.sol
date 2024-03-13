@@ -48,22 +48,6 @@ interface INonfungiblePositionManager is IERC721 {
         returns (uint256 amount0, uint256 amount1);
 }
 
-/**
- * [ ] 200k fdv
- * .000001
- * 200000000000
- * [x] set the initial price 8% lower than the lp range
- * [x] frame version w/ reciepient and web version w/o
- * [x] should be ownable
- * [x] should be a token receiver
- * [x] should accept an owner in constructor
- * [x] should have ftv of 200k
- * [x] reciepient should only get 4% of supply
- * [x] should emit a MetalDeployer event
- * [x] liquidity token should go to the deployer contract
- * [x] fee collect function
- * [x] onlyOwner collect fee call which goes back to a recipient
- */
 contract TokenFactory is Ownable, ERC721Holder {
     error UNSUPPORTED_CHAIN();
 
