@@ -7,7 +7,7 @@ import {TokenFactory, InstantLiquidityToken} from "../src/TokenFactory.sol";
 contract DeployToken is Script {
     function run() public {
         vm.broadcast();
-        _run(0x5eD5A9b33019a2C08AAD51dD8ebbB75acA70c6A1);
+        _run(0xB323fFb8e3d9c2376bf3515e7c1677147c36b4A4);
     }
 
     function _run(address _factory) public returns (InstantLiquidityToken, uint256) {
