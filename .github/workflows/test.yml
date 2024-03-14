@@ -1,6 +1,13 @@
 name: test
 
-on: workflow_dispatch
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 env:
   FOUNDRY_PROFILE: ci
@@ -30,5 +37,7 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          forge test -vvv --rpc-url https://mainnet.base.org
+          forge test -vvv --rpc-url https://rpc.sepolia.org
+          forge test -vvv --rpc-url https://mainnet.optimism.io
         id: test
