@@ -55,7 +55,6 @@ function getAddresses()
         nonFungiblePositionManager =
             INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
     }
-
     // zora
     if (chainId == 7777777) {
         weth = 0x4200000000000000000000000000000000000006;
