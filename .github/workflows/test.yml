@@ -42,7 +42,7 @@ jobs:
         run: forge test -vvv --rpc-url https://rpc.sepolia.org
 
       - name: optimism 🔴
-        run: forge test -vvv --rpc-url https://optimism.llamarpc.com	
+        run: forge test -vvv --rpc-url https://opt-mainnet.g.alchemy.com/v2/FDIvPArKbg7JfNAt5hODljALhM99DKTZ	
 
       - name: polygon ☂️
         run: forge test -vvv --rpc-url https://polygon.llamarpc.com
