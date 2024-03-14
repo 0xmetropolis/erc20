@@ -11,5 +11,5 @@ uint24 constant POOL_FEE = 10_000;
 uint256 constant POOL_AMOUNT = 192_000_000_000 ether;
 uint256 constant OWNER_ALLOCATION = 8_000_000_000 ether;
 
-bytes32 constant LIQUIDITY_TOKEN_SALT = keccak256("INSTANT_LIQUIDITY_TOKEN_V2");
-bytes32 constant TOKEN_FACTORY_SALT = keccak256("TOKEN_FACTORY_V2");
+bytes32 constant LIQUIDITY_TOKEN_SALT = keccak256("INSTANT_LIQUIDITY_TOKEN_V3");
+bytes32 constant TOKEN_FACTORY_SALT = keccak256("TOKEN_FACTORY_V3");

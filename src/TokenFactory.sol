@@ -198,7 +198,7 @@ contract TokenFactory is Ownable, ERC721Holder {
             // deploy and initialize a new token
             token = Clones.cloneDeterministic(
                 address(store.instantLiquidityToken),
-                keccak256(abi.encode(block.chainid, store.deploymentNonce++))
+                keccak256(abi.encode(block.chainid, store.deploymentNonce))
             );
             InstantLiquidityToken(token).initialize({
                 _mintTo: address(this),
@@ -206,6 +206,7 @@ contract TokenFactory is Ownable, ERC721Holder {
                 _name: _name,
                 _symbol: _symbol
             });
+            s.deploymentNonce += 1;
         }
 
         // sort the tokens and the amounts
