@@ -61,20 +61,18 @@ contract TokenFactory is Ownable, ERC721Holder {
 
     struct Storage {
         // a nonce to ensure unique token ids for each deployment
-        uint64 deploymentNonce;
+        uint96 deploymentNonce;
         // the instant liquidity token contract
         InstantLiquidityToken instantLiquidityToken;
     }
 
-    Storage public s;
+    Storage public s = Storage({
+        deploymentNonce: 0,
+        instantLiquidityToken: new InstantLiquidityToken{salt: LIQUIDITY_TOKEN_SALT}()
+    });
 
     constructor(address _owner) Ownable(_owner) {
         uint256 chainId = block.chainid;
-
-        s = Storage({
-            deploymentNonce: 0,
-            instantLiquidityToken: new InstantLiquidityToken{salt: LIQUIDITY_TOKEN_SALT}()
-        });
 
         if (
             // mainnet
@@ -194,17 +192,21 @@ contract TokenFactory is Ownable, ERC721Holder {
     {
         // get the addresses per-chain
         (address weth, INonfungiblePositionManager nonfungiblePositionManager) = _getAddresses();
-        // deploy and initialize a new token
-        address token = Clones.cloneDeterministic(
-            address(s.instantLiquidityToken),
-            keccak256(abi.encode(block.chainid, s.deploymentNonce++))
-        );
-        InstantLiquidityToken(token).initialize({
-            _mintTo: address(this),
-            _totalSupply: POOL_AMOUNT + OWNER_ALLOCATION,
-            _name: _name,
-            _symbol: _symbol
-        });
+        address token;
+        {
+            Storage memory store = s;
+            // deploy and initialize a new token
+            token = Clones.cloneDeterministic(
+                address(store.instantLiquidityToken),
+                keccak256(abi.encode(block.chainid, store.deploymentNonce++))
+            );
+            InstantLiquidityToken(token).initialize({
+                _mintTo: address(this),
+                _totalSupply: POOL_AMOUNT + OWNER_ALLOCATION,
+                _name: _name,
+                _symbol: _symbol
+            });
+        }
 
         // sort the tokens and the amounts
         (address token0, address token1) = token < weth ? (token, weth) : (weth, token);
