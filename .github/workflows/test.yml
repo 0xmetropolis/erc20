@@ -35,9 +35,16 @@ jobs:
           forge build --sizes
         id: build
 
-      - name: Run Forge tests
-        run: |
-          forge test -vvv --rpc-url https://mainnet.base.org
-          forge test -vvv --rpc-url https://rpc.sepolia.org
-          forge test -vvv --rpc-url https://mainnet.optimism.io
+      - name: base 🔵
+        run: forge test -vvv --rpc-url https://mainnet.base.org
+
+      - name: sepolia 🐬
+        run: forge test -vvv --rpc-url https://rpc.sepolia.org
+
+      - name: optimism 🔴
+        run: forge test -vvv --rpc-url https://optimism.llamarpc.com	
+
+      - name: polygon ☂️
+        run: forge test -vvv --rpc-url https://polygon.llamarpc.com
+
         id: test
