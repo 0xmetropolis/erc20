@@ -40,7 +40,7 @@ jobs:
           forge build --sizes
         id: build
 
-      - name: base 🔵, 🐬, 🔴, 🟣
+      - name: (🍴): 🔵, 🐬, 🔴, 🟣
         run:
           forge test -vvv --rpc-url "https://base-mainnet.g.alchemy.com/v2/$BASE_KEY"
           | forge test -vvv --rpc-url "https://base-sepolia.g.alchemy.com/v2/$BASE_SEPOLIA_KEY"
