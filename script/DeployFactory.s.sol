@@ -9,8 +9,12 @@ import {TokenFactory} from "../src/TokenFactory.sol";
 
 contract DeployFactory is Script {
     function run() public returns (TokenFactory) {
+        return _run(vm.envAddress("OWNER"));
+    }
+
+    function _run(address _owner) public returns (TokenFactory) {
         vm.broadcast();
-        TokenFactory tokenFactory = new TokenFactory{salt: TOKEN_FACTORY_SALT}();
+        TokenFactory tokenFactory = new TokenFactory{salt: TOKEN_FACTORY_SALT}(_owner);
 
         console.log("tokenFactory", address(tokenFactory));
 

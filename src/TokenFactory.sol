@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {LIQUIDITY_TOKEN_SALT, POOL_AMOUNT} from "src/Constants.sol";
-import {InstantLiquidityToken} from "src/InstantLiquidityToken.sol";
+import {LIQUIDITY_TOKEN_SALT, POOL_FEE, POOL_AMOUNT, OWNER_ALLOCATION} from "./Constants.sol";
+import {InstantLiquidityToken} from "./InstantLiquidityToken.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
-interface INonfungiblePositionManager {
+interface INonfungiblePositionManager is IERC721 {
     struct MintParams {
         address token0;
         address token1;
@@ -20,25 +23,57 @@ interface INonfungiblePositionManager {
         uint256 deadline;
     }
 
+    struct CollectParams {
+        uint256 tokenId;
+        address recipient;
+        uint128 amount0Max;
+        uint128 amount1Max;
+    }
+
     function mint(MintParams calldata params)
         external
         payable
         returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
 
-    function createAndInitializePoolIfNecessary(address token0, address token1, uint24 fee, uint160 sqrtPriceX96)
+    function createAndInitializePoolIfNecessary(
+        address token0,
+        address token1,
+        uint24 fee,
+        uint160 sqrtPriceX96
+    ) external payable returns (address pool);
+
+    function collect(CollectParams calldata params)
         external
         payable
-        returns (address pool);
+        returns (uint256 amount0, uint256 amount1);
 }
 
-contract TokenFactory {
+contract TokenFactory is Ownable, ERC721Holder {
     error UNSUPPORTED_CHAIN();
 
-    InstantLiquidityToken public immutable instantLiquidityToken =
-        new InstantLiquidityToken{salt: LIQUIDITY_TOKEN_SALT}();
+    event TokenFactoryDeployment(
+        address indexed token,
+        uint256 indexed tokenId,
+        address indexed recipient,
+        string name,
+        string symbol
+    );
 
-    constructor() {
+    struct Storage {
+        // a nonce to ensure unique token ids for each deployment
+        uint96 deploymentNonce;
+        // the instant liquidity token contract
+        InstantLiquidityToken instantLiquidityToken;
+    }
+
+    Storage public s = Storage({
+        deploymentNonce: 0,
+        instantLiquidityToken: new InstantLiquidityToken{salt: LIQUIDITY_TOKEN_SALT}()
+    });
+
+    constructor(address _owner) Ownable(_owner) {
         uint256 chainId = block.chainid;
+
         if (
             // mainnet
             chainId != 1
@@ -58,6 +93,8 @@ contract TokenFactory {
             && chainId != 84532
             // sepolia
             && chainId != 11155111
+            // zora
+            && chainId != 7777777
         ) revert UNSUPPORTED_CHAIN();
     }
 
@@ -71,7 +108,8 @@ contract TokenFactory {
     {
         uint256 chainId = block.chainid;
         // Mainnet, Goerli, Arbitrum, Optimism, Polygon
-        nonFungiblePositionManager = INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
+        nonFungiblePositionManager =
+            INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
 
         // mainnet
         if (chainId == 1) weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -86,22 +124,32 @@ contract TokenFactory {
         // bnb
         if (chainId == 56) {
             weth = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-            nonFungiblePositionManager = INonfungiblePositionManager(0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613);
+            nonFungiblePositionManager =
+                INonfungiblePositionManager(0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613);
         }
         // base
         if (chainId == 8453) {
             weth = 0x4200000000000000000000000000000000000006;
-            nonFungiblePositionManager = INonfungiblePositionManager(0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1);
+            nonFungiblePositionManager =
+                INonfungiblePositionManager(0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1);
         }
         // base sepolia
         if (chainId == 84532) {
             weth = 0x4200000000000000000000000000000000000006;
-            nonFungiblePositionManager = INonfungiblePositionManager(0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2);
+            nonFungiblePositionManager =
+                INonfungiblePositionManager(0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2);
         }
         // sepolia
         if (chainId == 11155111) {
             weth = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
-            nonFungiblePositionManager = INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
+            nonFungiblePositionManager =
+                INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
+        }
+        // zora
+        if (chainId == 7777777) {
+            weth = 0x4200000000000000000000000000000000000006;
+            nonFungiblePositionManager =
+                INonfungiblePositionManager(0xbC91e8DfA3fF18De43853372A3d7dfe585137D78);
         }
     }
 
@@ -112,49 +160,111 @@ contract TokenFactory {
     {
         bool tokenIsLessThanWeth = token < weth;
         (address token0, address token1) = tokenIsLessThanWeth ? (token, weth) : (weth, token);
-        (int24 tickLower, int24 tickUpper) = tokenIsLessThanWeth ? (-68128, int24(184216)) : (-184217, int24(68127));
-        (uint256 amt0, uint256 amt1) =
-            tokenIsLessThanWeth ? (uint256(9999999999999999999999999986), uint256(0)) : (uint256(0), uint256(9999999999999999999999999981));
+        (int24 tickLower, int24 tickUpper) =
+            tokenIsLessThanWeth ? (int24(-220400), int24(0)) : (int24(0), int24(220400));
+        (uint256 amt0, uint256 amt1) = tokenIsLessThanWeth
+            ? (uint256(POOL_AMOUNT), uint256(0))
+            : (uint256(0), uint256(POOL_AMOUNT));
 
         params = INonfungiblePositionManager.MintParams({
             token0: token0,
             token1: token1,
-            fee: 100,
+            // 1% fee
+            fee: POOL_FEE,
             tickLower: tickLower,
             tickUpper: tickUpper,
             amount0Desired: amt0,
-            amount0Min: amt0,
+            // allow for a bit of slippage
+            amount0Min: amt0 - (amt0 / 1e18),
             amount1Desired: amt1,
-            amount1Min: amt1,
+            amount1Min: amt1 - (amt1 / 1e18),
             deadline: block.timestamp,
             recipient: address(this)
         });
 
-        initialSqrtPrice = tokenIsLessThanWeth ? 2505290050365003892876723467 : 2505413655765166104103837312489;
+        initialSqrtPrice =
+            tokenIsLessThanWeth ? 1252685732681638336686364 : 5010664478791732988152496286088527;
     }
 
-    function deploy(string memory _name, string memory _symbol) public returns (InstantLiquidityToken) {
+    function _deploy(address _recipient, string memory _name, string memory _symbol)
+        internal
+        returns (InstantLiquidityToken, uint256)
+    {
         // get the addresses per-chain
         (address weth, INonfungiblePositionManager nonfungiblePositionManager) = _getAddresses();
-
-        // deploy and initialize a new token
-        address token = Clones.clone(address(instantLiquidityToken));
-        InstantLiquidityToken(token).initialize(msg.sender, _name, _symbol);
+        address token;
+        {
+            Storage memory store = s;
+            // deploy and initialize a new token
+            token = Clones.cloneDeterministic(
+                address(store.instantLiquidityToken),
+                keccak256(abi.encode(block.chainid, store.deploymentNonce))
+            );
+            InstantLiquidityToken(token).initialize({
+                _mintTo: address(this),
+                _totalSupply: POOL_AMOUNT + OWNER_ALLOCATION,
+                _name: _name,
+                _symbol: _symbol
+            });
+            s.deploymentNonce += 1;
+        }
 
         // sort the tokens and the amounts
         (address token0, address token1) = token < weth ? (token, weth) : (weth, token);
 
         // approve the non-fungible position mgr for the pool liquidity amount
-        InstantLiquidityToken(token).approve(address(nonfungiblePositionManager), POOL_AMOUNT);
+        InstantLiquidityToken(token).approve({
+            spender: address(nonfungiblePositionManager),
+            value: POOL_AMOUNT
+        });
         (INonfungiblePositionManager.MintParams memory mintParams, uint160 initialSquareRootPrice) =
-            _getMintParams(token, weth);
+            _getMintParams({token: token, weth: weth});
 
         // create the pool
-        nonfungiblePositionManager.createAndInitializePoolIfNecessary(token0, token1, 100, initialSquareRootPrice);
+        nonfungiblePositionManager.createAndInitializePoolIfNecessary({
+            token0: token0,
+            token1: token1,
+            fee: POOL_FEE,
+            sqrtPriceX96: initialSquareRootPrice
+        });
 
         // mint the position
-        nonfungiblePositionManager.mint(mintParams);
+        (uint256 lpTokenId,,,) = nonfungiblePositionManager.mint({params: mintParams});
 
-        return InstantLiquidityToken(token);
+        // transfer the owner allocation
+        InstantLiquidityToken(token).transfer({to: _recipient, value: OWNER_ALLOCATION});
+
+        emit TokenFactoryDeployment(token, lpTokenId, _recipient, _name, _symbol);
+
+        return (InstantLiquidityToken(token), lpTokenId);
+    }
+
+    function deploy(string memory _name, string memory _symbol)
+        public
+        returns (InstantLiquidityToken, uint256)
+    {
+        return _deploy(msg.sender, _name, _symbol);
+    }
+
+    function deployWithRecipient(address _recipient, string memory _name, string memory _symbol)
+        public
+        returns (InstantLiquidityToken, uint256)
+    {
+        return _deploy(_recipient, _name, _symbol);
+    }
+
+    function collectFees(address _recipient, uint256[] memory _tokenIds) public onlyOwner {
+        (, INonfungiblePositionManager nonfungiblePositionManager) = _getAddresses();
+
+        for (uint256 i; i < _tokenIds.length; ++i) {
+            nonfungiblePositionManager.collect(
+                INonfungiblePositionManager.CollectParams({
+                    recipient: _recipient,
+                    amount0Max: type(uint128).max,
+                    amount1Max: type(uint128).max,
+                    tokenId: _tokenIds[i]
+                })
+            );
+        }
     }
 }
