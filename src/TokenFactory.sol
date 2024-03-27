@@ -68,7 +68,7 @@ contract TokenFactory is Ownable, ERC721Holder {
 
     Storage public s = Storage({
         deploymentNonce: 0,
-        instantLiquidityToken: new InstantLiquidityToken{salt: LIQUIDITY_TOKEN_SALT}()
+        instantLiquidityToken: InstantLiquidityToken(0xD74D14ebe305c93D023C966640788f05593F0fdE)
     });
 
     constructor(address _owner) Ownable(_owner) {
