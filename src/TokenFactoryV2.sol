@@ -25,8 +25,6 @@ interface IGasliteDrop {
 IGasliteDrop constant gasliteDrop = IGasliteDrop(0x09350F89e2D7B6e96bA730783c2d76137B045FEF);
 
 contract TokenFactoryV2 is TokenFactory {
-    uint256 public test = 0;
-
     constructor(address _owner) TokenFactory(_owner) {}
 
     function _getAddressAndAmounts(address owner, address[] calldata _addresses)
@@ -63,9 +61,9 @@ contract TokenFactoryV2 is TokenFactory {
         string calldata name,
         string calldata symbol,
         address[] calldata addresses
-    ) public {
+    ) public returns (InstantLiquidityToken, uint256) {
         // deploy the token
-        (InstantLiquidityToken token,) = _deploy(address(this), name, symbol);
+        (InstantLiquidityToken token, uint256 lpTokenId) = _deploy(address(this), name, symbol);
 
         // approve the amount
         token.approve(address(gasliteDrop), OWNER_ALLOCATION);
@@ -80,5 +78,7 @@ contract TokenFactoryV2 is TokenFactory {
             _amounts: amounts,
             _totalAmount: OWNER_ALLOCATION
         });
+
+        return (token, lpTokenId);
     }
 }
