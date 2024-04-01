@@ -8,8 +8,10 @@ import {DeployTokenV2} from "script/DeployTokenV2.s.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {InstantLiquidityToken} from "../src/InstantLiquidityToken.sol";
 import {
-    TokenFactory, INonfungiblePositionManager, OWNER_ALLOCATION
-} from "../src/TokenFactory.sol";
+    TokenFactoryV2,
+    INonfungiblePositionManager,
+    OWNER_ALLOCATION
+} from "../src/TokenFactoryV2.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {getAddresses} from "./e2e.t.sol";
@@ -18,7 +20,7 @@ contract TestEndToEndDeploymentV2 is Test {
     DeployFactoryV2 internal deployFactoryV2;
     DeployTokenV2 internal deployTokenV2;
 
-    address internal recipient = address(0xA11c3);
+    address[] internal recipients;
     address internal owner = address(0xB0b);
     address internal feeRecipient = address(0xFe3);
     address internal rando = address(0x111111);
@@ -34,21 +36,45 @@ contract TestEndToEndDeploymentV2 is Test {
     function setUp() public {
         deployFactoryV2 = new DeployFactoryV2();
         deployTokenV2 = new DeployTokenV2();
+
+        recipients.push(address(1));
+        recipients.push(address(2));
+        recipients.push(address(3));
+        recipients.push(address(4));
+        recipients.push(address(5));
     }
 
-    function buyToken(TokenFactory _factory) internal {
+    function buyToken(TokenFactoryV2 _factory) internal {
+        address[] memory _recipients = recipients;
         // @spec can deploy a token
         // vm.expectEmit({checkTopic1: false, checkTopic2: false, checkTopic3: true, checkData: false});
         // emit TokenFactoryDeployment(address(0), 0, recipient, "InstantLiquidityToken", "ILT");
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            deployTokenV2._runWithAirdrop(address(_factory), recipient);
+            deployTokenV2._runWithAirdrop(address(_factory), _recipients);
+
+        // @spec assert Owner allocation is correct
+        assertEq(OWNER_ALLOCATION, 8000000000000000000000000000, "owner allocation is not correct");
+
+        // @spec calculate expected amount for each recipient plus owner
+        uint256 expectedAmount = OWNER_ALLOCATION / (_recipients.length + 1); // Plus owner
+
+        // @spec assert airdropERC20 for each of the recipients, check balances before airdrop and after.
+        for (uint256 i; i < _recipients.length; i++) {
+            assertEq(
+                token.balanceOf(_recipients[i]), expectedAmount, "expected amount does not match"
+            );
+        }
+
+        // @spec assert owner balance
+        assertEq(
+            token.balanceOf(address(deployTokenV2)),
+            expectedAmount,
+            "expected owner amount does not match"
+        );
 
         // @spec the factory should be the owner of the LP token
         (, INonfungiblePositionManager nonFungiblePositionManager) = getAddresses();
         assertEq(nonFungiblePositionManager.ownerOf(lpTokenId), address(_factory));
-
-        // @spec recipient should receive their allocation
-        assertEq(token.balanceOf(recipient), OWNER_ALLOCATION);
 
         // @spec owner can call collect fees
         uint256[] memory tokenIds = new uint256[](1);
@@ -79,7 +105,7 @@ contract TestEndToEndDeploymentV2 is Test {
     }
 
     function test_endToEnd() public {
-        TokenFactory factory = deployFactoryV2._run(owner);
+        TokenFactoryV2 factory = deployFactoryV2._run(owner);
 
         // @spec owner should be correctly initialized
         assertEq(factory.owner(), address(owner));

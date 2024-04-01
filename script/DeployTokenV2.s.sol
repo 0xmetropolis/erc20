@@ -10,22 +10,14 @@ contract DeployTokenV2 is Script {
         // _run(0x9E7B76DAf55397278Acc0f858876b59aB686f7Ef); // TODO: update this
     }
 
-    function _runWithAirdrop(address _factory, address _recipient)
+    function _runWithAirdrop(address _factory, address[] memory _recipients)
         public
         returns (InstantLiquidityToken, uint256)
     {
         TokenFactoryV2 factory = TokenFactoryV2(_factory);
 
-        address[] memory addresses = new address[](5);
-
-        addresses[0] = address(1);
-        addresses[1] = address(2);
-        addresses[2] = address(3);
-        addresses[3] = address(4);
-        addresses[4] = address(5);
-
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            factory.deployWithAirdrop("", "", addresses);
+            factory.deployWithAirdrop("", "", _recipients);
 
         console.log("token", address(token));
 
