@@ -130,26 +130,26 @@ contract TestEndToEndDeploymentV2Fuzzing is Test {
     }
 
     function testFuzz_DeployWithAirdrop(uint8 addressCount) public {
-        // Bound the address count to 0->255 (uint8)
+        // @spec Bound the address count to 0->255 (uint8)
         vm.assume(addressCount > 0 && addressCount <= 200);
 
-        // Initialize the recipients array with an extra slot for the owner address
+        // @spec Initialize the recipients array with an extra slot for the owner address
         address[] memory recipients = new address[](addressCount);
 
-        // Populate the recipients array with generated addresses.
+        // @spec Populate the recipients array with generated addresses.
         for (uint8 i = 0; i < addressCount; i++) {
             // Generate a random address using keccak256.
             recipients[i] = address(uint160(i + 1));
         }
 
-        // Assert the array is of the expected length
+        // @spec Assert the array is of the expected length
         assertEq(
             recipients.length,
             addressCount,
             "The recipients array should include the owner and be of the expected length"
         );
 
-        // Deploy the token and perform the airdrop.
+        // @spec Deploy token and perform airdrop.
         (InstantLiquidityToken token, ) = deployTokenV2._runWithAirdrop(address(tokenFactory), recipients);
 
         // @spec calculate expected amount for each recipient plus owner
