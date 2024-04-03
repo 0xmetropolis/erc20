@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+
 import {DeployFactoryV2} from "script/DeployFactoryV2.s.sol";
 import {DeployTokenV2} from "script/DeployTokenV2.s.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -138,7 +139,7 @@ contract TestEndToEndDeploymentV2Fuzzing is Test {
         // Populate the recipients array with generated addresses.
         for (uint8 i = 0; i < addressCount; i++) {
             // Generate a random address using keccak256.
-            recipients[i] = address(uint160(i + 1)); //;address(uint160(uint256(hash)));
+            recipients[i] = address(uint160(i + 1));
         }
 
         // Assert the array is of the expected length
