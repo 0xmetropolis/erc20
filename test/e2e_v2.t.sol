@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-
 import {DeployFactoryV2} from "script/DeployFactoryV2.s.sol";
 import {DeployTokenV2} from "script/DeployTokenV2.s.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -113,5 +112,57 @@ contract TestEndToEndDeploymentV2 is Test {
         // for (uint256 i; i < 25; i++) {
         buyToken(factory);
         // }
+    }
+}
+
+contract TestEndToEndDeploymentV2Fuzzing is Test {
+    DeployFactoryV2 public deployFactoryV2;
+    DeployTokenV2 public deployTokenV2;
+    address owner = address(0xB0b);
+    TokenFactoryV2 public tokenFactory;
+
+    function setUp() public {
+        deployFactoryV2 = new DeployFactoryV2();
+        deployTokenV2 = new DeployTokenV2();
+
+        tokenFactory = new TokenFactoryV2{salt: keccak256("TOKEN_FACTORY_SALT")}(owner);
+    }
+
+    function testFuzz_DeployWithAirdrop(uint8 addressCount) public {
+        // Bound the address count to 0->255 (uint8)
+        vm.assume(addressCount > 0 && addressCount <= 200);
+
+        // Initialize the recipients array with an extra slot for the owner address
+        address[] memory recipients = new address[](addressCount);
+
+        // Populate the recipients array with generated addresses.
+        for (uint8 i = 0; i < addressCount; i++) {
+            // Generate a random address using keccak256.
+            recipients[i] = address(uint160(i + 1)); //;address(uint160(uint256(hash)));
+        }
+
+        // Assert the array is of the expected length
+        assertEq(
+            recipients.length,
+            addressCount,
+            "The recipients array should include the owner and be of the expected length"
+        );
+
+        // Deploy the token and perform the airdrop with address of TokenFactoryV2 and the recipients array
+        // Save the returned token address and tokenId for allocation assertion
+        (InstantLiquidityToken token, ) = deployTokenV2._runWithAirdrop(address(tokenFactory), recipients);
+
+        // @spec calculate expected amount for each recipient plus owner
+        uint256 expectedAmount = OWNER_ALLOCATION / (recipients.length + 1);
+
+        // @spec assert airdropERC20 for each of the recipients, check balances before airdrop and after.
+        for (uint256 i; i < recipients.length; i++) {
+            assertEq(
+                token.balanceOf(recipients[i]), expectedAmount, "expected amount does not match"
+            );
+        }
+
+        // @spec assert owner balance
+        assertEq(token.balanceOf(address(deployTokenV2)), expectedAmount, "Owner's expected amount does not match");
     }
 }
