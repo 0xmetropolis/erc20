@@ -148,14 +148,13 @@ contract TestEndToEndDeploymentV2Fuzzing is Test {
             "The recipients array should include the owner and be of the expected length"
         );
 
-        // Deploy the token and perform the airdrop with address of TokenFactoryV2 and the recipients array
-        // Save the returned token address and tokenId for allocation assertion
+        // Deploy the token and perform the airdrop.
         (InstantLiquidityToken token, ) = deployTokenV2._runWithAirdrop(address(tokenFactory), recipients);
 
         // @spec calculate expected amount for each recipient plus owner
         uint256 expectedAmount = OWNER_ALLOCATION / (recipients.length + 1);
 
-        // @spec assert airdropERC20 for each of the recipients, check balances before airdrop and after.
+        // @spec assert airdropERC20 for each of the recipients, check balances after airdrop.
         for (uint256 i; i < recipients.length; i++) {
             assertEq(
                 token.balanceOf(recipients[i]), expectedAmount, "expected amount does not match"
