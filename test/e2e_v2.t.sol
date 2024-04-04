@@ -19,6 +19,7 @@ import {getAddresses} from "./e2e.t.sol";
 contract TestEndToEndDeploymentV2 is Test {
     DeployFactoryV2 internal deployFactoryV2;
     DeployTokenV2 internal deployTokenV2;
+    TokenFactoryV2 internal tokenFactory;
 
     address[] internal recipients;
     address internal owner = address(0xB0b);
@@ -36,6 +37,7 @@ contract TestEndToEndDeploymentV2 is Test {
     function setUp() public {
         deployFactoryV2 = new DeployFactoryV2();
         deployTokenV2 = new DeployTokenV2();
+        tokenFactory = new TokenFactoryV2{salt: keccak256("TOKEN_FACTORY_SALT")}(owner);
 
         recipients.push(address(1));
         recipients.push(address(2));
@@ -114,55 +116,46 @@ contract TestEndToEndDeploymentV2 is Test {
         buyToken(factory);
         // }
     }
-}
-
-contract TestEndToEndDeploymentV2Fuzzing is Test {
-    DeployFactoryV2 public deployFactoryV2;
-    DeployTokenV2 public deployTokenV2;
-    address owner = address(0xB0b);
-    TokenFactoryV2 public tokenFactory;
-
-    function setUp() public {
-        deployFactoryV2 = new DeployFactoryV2();
-        deployTokenV2 = new DeployTokenV2();
-
-        tokenFactory = new TokenFactoryV2{salt: keccak256("TOKEN_FACTORY_SALT")}(owner);
-    }
 
     function testFuzz_DeployWithAirdrop(uint8 addressCount) public {
-        // @spec Bound the address count to 0->255 (uint8)
-        vm.assume(addressCount > 0 && addressCount <= 200);
+        address[] memory fuzzRecipients = new address[](addressCount);
 
-        // @spec Initialize the recipients array with an extra slot for the owner address
-        address[] memory recipients = new address[](addressCount);
-
-        // @spec Populate the recipients array with generated addresses.
+        // @spec populate the recipients array with generated addresses.
         for (uint8 i = 0; i < addressCount; i++) {
-            // Generate a random address using keccak256.
-            recipients[i] = address(uint160(i + 1));
+            fuzzRecipients[i] = address(uint160(i + 1));
         }
 
-        // @spec Assert the array is of the expected length
-        assertEq(
-            recipients.length,
-            addressCount,
-            "The recipients array should include the owner and be of the expected length"
-        );
-
-        // @spec Deploy token and perform airdrop.
-        (InstantLiquidityToken token, ) = deployTokenV2._runWithAirdrop(address(tokenFactory), recipients);
+        // @spec deploy token and perform airdrop.
+        // @spec should call run with airdrop successfully.
+        // @spec should destribute the correct amount of tokens to each recipient and owner.
+        (InstantLiquidityToken token,) =
+            deployTokenV2._runWithAirdrop(address(tokenFactory), fuzzRecipients);
 
         // @spec calculate expected amount for each recipient plus owner
-        uint256 expectedAmount = OWNER_ALLOCATION / (recipients.length + 1);
+        uint256 expectedAmount = OWNER_ALLOCATION / (fuzzRecipients.length + 1);
 
         // @spec assert airdropERC20 for each of the recipients, check balances after airdrop.
-        for (uint256 i; i < recipients.length; i++) {
+        for (uint256 i; i < fuzzRecipients.length; i++) {
             assertEq(
-                token.balanceOf(recipients[i]), expectedAmount, "expected amount does not match"
+                token.balanceOf(fuzzRecipients[i]), expectedAmount, "expected amount does not match"
             );
         }
 
-        // @spec assert owner balance
-        assertEq(token.balanceOf(address(deployTokenV2)), expectedAmount, "Owner's expected amount does not match");
+        // @spec assert owner balance after airdrop.
+        assertEq(
+            token.balanceOf(address(deployTokenV2)),
+            expectedAmount,
+            "Owner's expected amount does not match"
+        );
+
+        // @spec assert owner receives full amount if no other recipients are present.
+        if (fuzzRecipients.length == 0) {
+            assertEq(
+                token.balanceOf(address(deployTokenV2)),
+                OWNER_ALLOCATION,
+                "Owner's expected amount does not match"
+            );
+            return;
+        }
     }
 }
