@@ -19,6 +19,7 @@ import {getAddresses} from "./e2e.t.sol";
 contract TestEndToEndDeploymentV2 is Test {
     DeployFactoryV2 internal deployFactoryV2;
     DeployTokenV2 internal deployTokenV2;
+    TokenFactoryV2 internal tokenFactory;
 
     address[] internal recipients;
     address internal owner = address(0xB0b);
@@ -113,5 +114,48 @@ contract TestEndToEndDeploymentV2 is Test {
         // for (uint256 i; i < 25; i++) {
         buyToken(factory);
         // }
+    }
+
+    function testFuzz_DeployWithAirdrop(uint8 addressCount) public {
+        tokenFactory = deployFactoryV2._run(owner);
+        address[] memory fuzzRecipients = new address[](addressCount);
+
+        // @spec populate the recipients array with generated addresses.
+        for (uint8 i = 0; i < addressCount; i++) {
+            fuzzRecipients[i] = address(uint160(i + 1));
+        }
+
+        // @spec deploy token and perform airdrop.
+        // @spec should call run with airdrop successfully.
+        // @spec should distribute the correct amount of tokens to each recipient and owner.
+        (InstantLiquidityToken token,) =
+            deployTokenV2._runWithAirdrop(address(tokenFactory), fuzzRecipients);
+
+        // @spec calculate expected amount for each recipient plus owner
+        uint256 expectedAmount = OWNER_ALLOCATION / (fuzzRecipients.length + 1);
+
+        // @spec assert airdropERC20 for each of the recipients, check balances after airdrop.
+        for (uint256 i; i < fuzzRecipients.length; i++) {
+            assertEq(
+                token.balanceOf(fuzzRecipients[i]), expectedAmount, "expected amount does not match"
+            );
+        }
+
+        // @spec assert owner balance after airdrop.
+        assertEq(
+            token.balanceOf(address(deployTokenV2)),
+            expectedAmount,
+            "Owner's expected amount does not match"
+        );
+
+        // @spec assert owner receives full amount if no other recipients are present.
+        if (fuzzRecipients.length == 0) {
+            assertEq(
+                token.balanceOf(address(deployTokenV2)),
+                OWNER_ALLOCATION,
+                "Owner's expected amount does not match"
+            );
+            return;
+        }
     }
 }
