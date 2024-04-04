@@ -37,7 +37,6 @@ contract TestEndToEndDeploymentV2 is Test {
     function setUp() public {
         deployFactoryV2 = new DeployFactoryV2();
         deployTokenV2 = new DeployTokenV2();
-        tokenFactory = new TokenFactoryV2{salt: keccak256("TOKEN_FACTORY_SALT")}(owner);
 
         recipients.push(address(1));
         recipients.push(address(2));
@@ -118,6 +117,7 @@ contract TestEndToEndDeploymentV2 is Test {
     }
 
     function testFuzz_DeployWithAirdrop(uint8 addressCount) public {
+        tokenFactory = deployFactoryV2._run(owner);
         address[] memory fuzzRecipients = new address[](addressCount);
 
         // @spec populate the recipients array with generated addresses.
@@ -127,7 +127,7 @@ contract TestEndToEndDeploymentV2 is Test {
 
         // @spec deploy token and perform airdrop.
         // @spec should call run with airdrop successfully.
-        // @spec should destribute the correct amount of tokens to each recipient and owner.
+        // @spec should distribute the correct amount of tokens to each recipient and owner.
         (InstantLiquidityToken token,) =
             deployTokenV2._runWithAirdrop(address(tokenFactory), fuzzRecipients);
 
