@@ -6,8 +6,12 @@ import {TokenFactoryV2, InstantLiquidityToken} from "../src/TokenFactoryV2.sol";
 
 contract DeployTokenV2 is Script {
     function run() public {
+        address[] memory recipients = new address[](2);
+        recipients[0] = address(0x01);
+        recipients[1] = address(0x02);
+
         vm.broadcast();
-        // _run(0x9E7B76DAf55397278Acc0f858876b59aB686f7Ef); // TODO: update this
+        _runWithAirdrop(0x62245F030B2A623B14f514B9a0213Ad1e0d92C29, recipients);
     }
 
     function _runWithAirdrop(address _factory, address[] memory _recipients)
