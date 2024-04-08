@@ -14,6 +14,7 @@ import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 function getAddresses()
+    view
     returns (address weth, INonfungiblePositionManager nonFungiblePositionManager)
 {
     uint256 chainId = block.chainid;

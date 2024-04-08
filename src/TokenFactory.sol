@@ -68,7 +68,7 @@ contract TokenFactory is Ownable, ERC721Holder {
 
     Storage public s = Storage({
         deploymentNonce: 0,
-        instantLiquidityToken: new InstantLiquidityToken{salt: LIQUIDITY_TOKEN_SALT}()
+        instantLiquidityToken: InstantLiquidityToken(0xD74D14ebe305c93D023C966640788f05593F0fdE)
     });
 
     constructor(address _owner) Ownable(_owner) {
@@ -234,23 +234,25 @@ contract TokenFactory is Ownable, ERC721Holder {
         // transfer the owner allocation
         InstantLiquidityToken(token).transfer({to: _recipient, value: OWNER_ALLOCATION});
 
-        emit TokenFactoryDeployment(token, lpTokenId, _recipient, _name, _symbol);
-
         return (InstantLiquidityToken(token), lpTokenId);
     }
 
     function deploy(string memory _name, string memory _symbol)
         public
-        returns (InstantLiquidityToken, uint256)
+        returns (InstantLiquidityToken token, uint256 lpTokenId)
     {
-        return _deploy(msg.sender, _name, _symbol);
+        (token, lpTokenId) = _deploy(msg.sender, _name, _symbol);
+
+        emit TokenFactoryDeployment(address(token), lpTokenId, msg.sender, _name, _symbol);
     }
 
     function deployWithRecipient(address _recipient, string memory _name, string memory _symbol)
         public
-        returns (InstantLiquidityToken, uint256)
+        returns (InstantLiquidityToken token, uint256 lpTokenId)
     {
-        return _deploy(_recipient, _name, _symbol);
+        (token, lpTokenId) = _deploy(_recipient, _name, _symbol);
+
+        emit TokenFactoryDeployment(address(token), lpTokenId, _recipient, _name, _symbol);
     }
 
     function collectFees(address _recipient, uint256[] memory _tokenIds) public onlyOwner {

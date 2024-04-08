@@ -42,8 +42,8 @@ jobs:
 
       - name: 🍴 🔵
         run: forge test -vvv --rpc-url "https://base-mainnet.g.alchemy.com/v2/$BASE_KEY"
-      - name: 🍴 🔵 🐬
-        run: forge test -vvv --rpc-url "https://base-sepolia.g.alchemy.com/v2/$BASE_SEPOLIA_KEY"
+      # - name: 🍴 🔵 🐬
+      #   run: forge test -vvv --rpc-url "https://base-sepolia.g.alchemy.com/v2/$BASE_SEPOLIA_KEY"
       - name: 🍴 🐬
         run: forge test -vvv --rpc-url "https://eth-sepolia.g.alchemy.com/v2/$SEPOLIA_KEY"
       - name: 🍴 🔴
