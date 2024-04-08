@@ -27,7 +27,7 @@ IGasliteDrop constant gasliteDrop = IGasliteDrop(0x09350F89e2D7B6e96bA730783c2d7
 contract TokenFactoryV2 is TokenFactory {
     event DeploymentWithAirdrop(
         address indexed token,
-        uint256 indexed tokenId,
+        uint256 indexed lpTokenId,
         address[] recipients,
         string name,
         string symbol
@@ -73,10 +73,11 @@ contract TokenFactoryV2 is TokenFactory {
         address[] calldata addresses
     ) public returns (InstantLiquidityToken, uint256) {
         // deploy the token
-        (InstantLiquidityToken token, uint256 lpTokenId) = _deploy(address(this), name, symbol);
+        (InstantLiquidityToken token, uint256 lpTokenId) =
+            _deploy({_recipient: address(this), _name: name, _symbol: symbol});
 
         // approve the amount
-        token.approve(address(gasliteDrop), OWNER_ALLOCATION);
+        token.approve({spender: address(gasliteDrop), value: OWNER_ALLOCATION});
 
         (address[] memory recipients, uint256[] memory amounts) =
             _getAddressAndAmounts({owner: msg.sender, _addresses: addresses});
@@ -89,7 +90,13 @@ contract TokenFactoryV2 is TokenFactory {
             _totalAmount: OWNER_ALLOCATION
         });
 
-        emit DeploymentWithAirdrop(address(token), lpTokenId, recipients, name, symbol);
+        emit DeploymentWithAirdrop({
+            token: address(token),
+            lpTokenId: lpTokenId,
+            recipients: recipients,
+            name: name,
+            symbol: symbol
+        });
 
         return (token, lpTokenId);
     }
@@ -102,10 +109,11 @@ contract TokenFactoryV2 is TokenFactory {
         if (addresses.length == 0) revert("must specify recipient addresses");
 
         // deploy the token
-        (InstantLiquidityToken token, uint256 lpTokenId) = _deploy(address(this), name, symbol);
+        (InstantLiquidityToken token, uint256 lpTokenId) =
+            _deploy({_recipient: address(this), _name: name, _symbol: symbol});
 
         // approve the amount
-        token.approve(address(gasliteDrop), OWNER_ALLOCATION);
+        token.approve({spender: address(gasliteDrop), value: OWNER_ALLOCATION});
 
         (address[] memory recipients, uint256[] memory amounts) =
             _getAddressAndAmounts({owner: address(0), _addresses: addresses});
@@ -118,7 +126,13 @@ contract TokenFactoryV2 is TokenFactory {
             _totalAmount: OWNER_ALLOCATION
         });
 
-        emit DeploymentWithAirdrop(address(token), lpTokenId, recipients, name, symbol);
+        emit DeploymentWithAirdrop({
+            token: address(token),
+            lpTokenId: lpTokenId,
+            recipients: recipients,
+            name: name,
+            symbol: symbol
+        });
 
         return (token, lpTokenId);
     }
