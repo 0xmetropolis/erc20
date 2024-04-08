@@ -25,6 +25,14 @@ interface IGasliteDrop {
 IGasliteDrop constant gasliteDrop = IGasliteDrop(0x09350F89e2D7B6e96bA730783c2d76137B045FEF);
 
 contract TokenFactoryV2 is TokenFactory {
+    event DeploymentWithAirdrop(
+        address indexed token,
+        uint256 indexed tokenId,
+        address[] recipients,
+        string name,
+        string symbol
+    );
+
     constructor(address _owner) TokenFactory(_owner) {}
 
     function _getAddressAndAmounts(address owner, address[] calldata _addresses)
@@ -32,8 +40,10 @@ contract TokenFactoryV2 is TokenFactory {
         pure
         returns (address[] memory, uint256[] memory)
     {
+        bool includeOwner = owner != address(0);
         // initialize the array
-        address[] memory newAddresses = new address[](_addresses.length + 1);
+        address[] memory newAddresses =
+            new address[](includeOwner ? _addresses.length + 1 : _addresses.length);
 
         // copy the calldata into memory
         for (uint256 i; i < _addresses.length; ++i) {
@@ -41,7 +51,7 @@ contract TokenFactoryV2 is TokenFactory {
         }
 
         // add the owner to the list
-        newAddresses[_addresses.length] = owner;
+        if (includeOwner) newAddresses[_addresses.length] = owner;
 
         // initialize the amounts array
         uint256[] memory amounts = new uint256[](newAddresses.length);
@@ -57,7 +67,7 @@ contract TokenFactoryV2 is TokenFactory {
         return (newAddresses, amounts);
     }
 
-    function deployWithAirdrop(
+    function deployAndAirdrop(
         string calldata name,
         string calldata symbol,
         address[] calldata addresses
@@ -78,6 +88,37 @@ contract TokenFactoryV2 is TokenFactory {
             _amounts: amounts,
             _totalAmount: OWNER_ALLOCATION
         });
+
+        emit DeploymentWithAirdrop(address(token), lpTokenId, recipients, name, symbol);
+
+        return (token, lpTokenId);
+    }
+
+    function deployAndAirdrop_noOwnerDistribution(
+        string calldata name,
+        string calldata symbol,
+        address[] calldata addresses
+    ) public returns (InstantLiquidityToken, uint256) {
+        if (addresses.length == 0) revert("must specify recipient addresses");
+
+        // deploy the token
+        (InstantLiquidityToken token, uint256 lpTokenId) = _deploy(address(this), name, symbol);
+
+        // approve the amount
+        token.approve(address(gasliteDrop), OWNER_ALLOCATION);
+
+        (address[] memory recipients, uint256[] memory amounts) =
+            _getAddressAndAmounts({owner: address(0), _addresses: addresses});
+
+        // airdrop the token
+        gasliteDrop.airdropERC20({
+            _token: address(token),
+            _addresses: recipients,
+            _amounts: amounts,
+            _totalAmount: OWNER_ALLOCATION
+        });
+
+        emit DeploymentWithAirdrop(address(token), lpTokenId, recipients, name, symbol);
 
         return (token, lpTokenId);
     }

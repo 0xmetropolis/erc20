@@ -155,7 +155,45 @@ contract TestEndToEndDeploymentV2 is Test {
                 OWNER_ALLOCATION,
                 "Owner's expected amount does not match"
             );
-            return;
+        }
+    }
+
+    function test_fuzz_DeployWithAirdrop_noOwnerAllocation(uint8 addressCount) public {
+        tokenFactory = deployFactoryV2._run(owner);
+        address[] memory fuzzRecipients = new address[](addressCount);
+
+        // @spec populate the recipients array with generated addresses.
+        for (uint8 i = 0; i < addressCount; i++) {
+            fuzzRecipients[i] = address(uint160(i + 1));
+        }
+
+        if (addressCount == 0) vm.expectRevert("must specify recipient addresses");
+
+        // @spec deploy token and perform airdrop.
+        // @spec should call run with airdrop successfully.
+        // @spec should distribute the correct amount of tokens to each recipient and owner.
+        (InstantLiquidityToken token,) =
+            deployTokenV2._runWithAirdropNoOwner(address(tokenFactory), fuzzRecipients);
+        
+        if(addressCount == 0) return;
+
+        // @spec calculate expected amount for each recipient plus owner
+        uint256 expectedAmount = OWNER_ALLOCATION / (fuzzRecipients.length);
+
+        // @spec assert airdropERC20 for each of the recipients, check balances after airdrop.
+        for (uint256 i; i < fuzzRecipients.length; i++) {
+            assertEq(
+                token.balanceOf(fuzzRecipients[i]), expectedAmount, "expected amount does not match"
+            );
+        }
+
+        // @spec assert owner receives full amount if no other recipients are present.
+        if (fuzzRecipients.length == 0) {
+            assertEq(
+                token.balanceOf(address(deployTokenV2)),
+                OWNER_ALLOCATION,
+                "Owner's expected amount does not match"
+            );
         }
     }
 }

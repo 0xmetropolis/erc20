@@ -21,7 +21,21 @@ contract DeployTokenV2 is Script {
         TokenFactoryV2 factory = TokenFactoryV2(_factory);
 
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            factory.deployWithAirdrop("", "", _recipients);
+            factory.deployAndAirdrop("", "", _recipients);
+
+        console.log("token", address(token));
+
+        return (token, lpTokenId);
+    }
+
+    function _runWithAirdropNoOwner(address _factory, address[] memory _recipients)
+        public
+        returns (InstantLiquidityToken, uint256)
+    {
+        TokenFactoryV2 factory = TokenFactoryV2(_factory);
+
+        (InstantLiquidityToken token, uint256 lpTokenId) =
+            factory.deployAndAirdrop_noOwnerDistribution("", "", _recipients);
 
         console.log("token", address(token));
 
