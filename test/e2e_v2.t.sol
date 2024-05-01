@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
+import {getAddresses} from "../src/lib/addresses.sol";
 import {DeployFactoryV2} from "script/DeployFactoryV2.s.sol";
 import {DeployTokenV2} from "script/DeployTokenV2.s.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -14,7 +15,6 @@ import {
 } from "../src/TokenFactoryV2.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {getAddresses} from "./e2e.t.sol";
 
 contract TestEndToEndDeploymentV2 is Test {
     DeployFactoryV2 internal deployFactoryV2;

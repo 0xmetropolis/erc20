@@ -1,54 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {LIQUIDITY_TOKEN_SALT, POOL_FEE, POOL_AMOUNT, OWNER_ALLOCATION} from "./Constants.sol";
+import {POOL_FEE} from "./Constants.sol";
 import {InstantLiquidityToken} from "./InstantLiquidityToken.sol";
+import {INonfungiblePositionManager} from "./TokenFactory.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {console} from "forge-std/console.sol";
 
-interface INonfungiblePositionManager is IERC721 {
-    struct MintParams {
-        address token0;
-        address token1;
-        uint24 fee;
-        int24 tickLower;
-        int24 tickUpper;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
-        address recipient;
-        uint256 deadline;
-    }
+contract MetalFunFactory is Ownable, ERC721Holder {
+    uint256 immutable TOTAL_SUPPLY = 923_500_000 ether;
 
-    struct CollectParams {
-        uint256 tokenId;
-        address recipient;
-        uint128 amount0Max;
-        uint128 amount1Max;
-    }
-
-    function mint(MintParams calldata params)
-        external
-        payable
-        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
-
-    function createAndInitializePoolIfNecessary(
-        address token0,
-        address token1,
-        uint24 fee,
-        uint160 sqrtPriceX96
-    ) external payable returns (address pool);
-
-    function collect(CollectParams calldata params)
-        external
-        payable
-        returns (uint256 amount0, uint256 amount1);
-}
-
-contract TokenFactory is Ownable, ERC721Holder {
     error UNSUPPORTED_CHAIN();
 
     event TokenFactoryDeployment(
@@ -95,6 +59,8 @@ contract TokenFactory is Ownable, ERC721Holder {
             && chainId != 11155111
             // zora
             && chainId != 7777777
+            // degen chain
+            && chainId != 666666666
         ) revert UNSUPPORTED_CHAIN();
     }
 
@@ -151,21 +117,29 @@ contract TokenFactory is Ownable, ERC721Holder {
             nonFungiblePositionManager =
                 INonfungiblePositionManager(0xbC91e8DfA3fF18De43853372A3d7dfe585137D78);
         }
+        // degen chain
+        if (chainId == 666666666) {
+            // wrapped degen
+            weth = 0xEb54dACB4C2ccb64F8074eceEa33b5eBb38E5387;
+            nonFungiblePositionManager =
+            // proxy swap
+             INonfungiblePositionManager(0x56c65e35f2Dd06f659BCFe327C4D7F21c9b69C2f);
+        }
     }
 
     function _getMintParams(address token, address weth)
         internal
         view
+        virtual
         returns (INonfungiblePositionManager.MintParams memory params, uint160 initialSqrtPrice)
     {
         bool tokenIsLessThanWeth = token < weth;
         (address token0, address token1) = tokenIsLessThanWeth ? (token, weth) : (weth, token);
         (int24 tickLower, int24 tickUpper) =
-            tokenIsLessThanWeth ? (int24(-220400), int24(0)) : (int24(0), int24(220400));
-                                //       -216600                                216600
+            tokenIsLessThanWeth ? (int24(-208400), int24(0)) : (int24(0), int24(208400));
         (uint256 amt0, uint256 amt1) = tokenIsLessThanWeth
-            ? (uint256(POOL_AMOUNT), uint256(0))
-            : (uint256(0), uint256(POOL_AMOUNT));
+            ? (uint256(TOTAL_SUPPLY), uint256(0))
+            : (uint256(0), uint256(TOTAL_SUPPLY));
 
         params = INonfungiblePositionManager.MintParams({
             token0: token0,
@@ -176,20 +150,18 @@ contract TokenFactory is Ownable, ERC721Holder {
             tickUpper: tickUpper,
             amount0Desired: amt0,
             // allow for a bit of slippage
-            amount0Min: amt0 - (amt0 / 1e18),
+            amount0Min: amt0 - (amt0 / 1e8),
             amount1Desired: amt1,
-            amount1Min: amt1 - (amt1 / 1e18),
+            amount1Min: amt1 - (amt1 / 1e8),
             deadline: block.timestamp,
             recipient: address(this)
         });
 
-        initialSqrtPrice =
-            tokenIsLessThanWeth ? 1252685732681638336686364 : 5010664478791732988152496286088527;
-
-        //  tokenIsLessThanWeth ? 2374716772012394972971008 : 2643305428826910585518143993544704;
+        initialSqrtPrice = 
+             tokenIsLessThanWeth ? 2363603296768335609331712 : 2655734041312737263542517807185920;
     }
 
-    function _deploy(address _recipient, string memory _name, string memory _symbol)
+    function _deploy(string memory _name, string memory _symbol)
         internal
         returns (InstantLiquidityToken, uint256)
     {
@@ -205,7 +177,7 @@ contract TokenFactory is Ownable, ERC721Holder {
             );
             InstantLiquidityToken(token).initialize({
                 _mintTo: address(this),
-                _totalSupply: POOL_AMOUNT + OWNER_ALLOCATION,
+                _totalSupply: TOTAL_SUPPLY,
                 _name: _name,
                 _symbol: _symbol
             });
@@ -218,8 +190,9 @@ contract TokenFactory is Ownable, ERC721Holder {
         // approve the non-fungible position mgr for the pool liquidity amount
         InstantLiquidityToken(token).approve({
             spender: address(nonfungiblePositionManager),
-            value: POOL_AMOUNT
+            value: TOTAL_SUPPLY
         });
+
         (INonfungiblePositionManager.MintParams memory mintParams, uint160 initialSquareRootPrice) =
             _getMintParams({token: token, weth: weth});
 
@@ -234,9 +207,6 @@ contract TokenFactory is Ownable, ERC721Holder {
         // mint the position
         (uint256 lpTokenId,,,) = nonfungiblePositionManager.mint({params: mintParams});
 
-        // transfer the owner allocation
-        InstantLiquidityToken(token).transfer({to: _recipient, value: OWNER_ALLOCATION});
-
         return (InstantLiquidityToken(token), lpTokenId);
     }
 
@@ -244,18 +214,9 @@ contract TokenFactory is Ownable, ERC721Holder {
         public
         returns (InstantLiquidityToken token, uint256 lpTokenId)
     {
-        (token, lpTokenId) = _deploy(msg.sender, _name, _symbol);
+        (token, lpTokenId) = _deploy(_name, _symbol);
 
         emit TokenFactoryDeployment(address(token), lpTokenId, msg.sender, _name, _symbol);
-    }
-
-    function deployWithRecipient(address _recipient, string memory _name, string memory _symbol)
-        public
-        returns (InstantLiquidityToken token, uint256 lpTokenId)
-    {
-        (token, lpTokenId) = _deploy(_recipient, _name, _symbol);
-
-        emit TokenFactoryDeployment(address(token), lpTokenId, _recipient, _name, _symbol);
     }
 
     function collectFees(address _recipient, uint256[] memory _tokenIds) public onlyOwner {
@@ -271,5 +232,9 @@ contract TokenFactory is Ownable, ERC721Holder {
                 })
             );
         }
+    }
+
+    function setInstantLiquidityToken(address _instantLiquidityToken) public onlyOwner {
+        s.instantLiquidityToken = InstantLiquidityToken(_instantLiquidityToken);
     }
 }

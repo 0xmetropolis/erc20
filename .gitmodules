@@ -10,3 +10,6 @@
 [submodule "lib/gaslitedrop"]
 	path = lib/gaslitedrop
 	url = https://github.com/PopPunkLLC/gaslitedrop
+[submodule "lib/solady"]
+	path = lib/solady
+	url = https://github.com/vectorized/solady
