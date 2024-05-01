@@ -30,4 +30,18 @@ contract testMetalFunFactoryV2 is Test {
         }
         console2.log(unicode"Pass ✅ for price: ", wantPrice);
     }
+
+    /**
+     *  COUNTER EXAMPLES
+     */
+
+    /// @dev edge case found where the sqrtPrice equaled an initial tick which was perfectly divisible by 200
+    ///     therefore, the starting price was "within" the liquidity range
+    function testCalculatePrices_CE_1() public {
+        for (uint256 j = 0; j < 5; j++) {
+            metalFunFactoryV2.deploy(
+                "TestToken", "TT", 486769778188445599, 1000000000000000000, recipient, 5844
+            );
+        }
+    }
 }

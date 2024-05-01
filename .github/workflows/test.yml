@@ -11,6 +11,7 @@ on:
 
 env:
   FOUNDRY_PROFILE: ci
+  FOUNDRY_FUZZ_RUNS: 1024
   BASE_KEY: ${{ secrets.BASE_KEY }}
   BASE_SEPOLIA_KEY: ${{ secrets.BASE_SEPOLIA_KEY }}
   SEPOLIA_KEY: ${{ secrets.SEPOLIA_KEY }}

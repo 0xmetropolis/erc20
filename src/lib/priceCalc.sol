@@ -28,7 +28,8 @@ function calculatePrices(address tokenA, address tokenB, uint256 ethPricePerToke
         uint256 ethPricePerTokenScaled = ethPricePerToken * scale;
         // square root price the liquidity begins at
         sqrtPrice = uint160(FixedPointMathLib.sqrt(ethPricePerTokenScaled) * q / scale);
-        tickLower = TickMath.getTickAtSqrtRatio(sqrtPrice) / 100 * 100;
+        // we just + 1 to adjust the tick in the case where the sqrtPrice is perfectly divisible by 200
+        tickLower = (TickMath.getTickAtSqrtRatio(sqrtPrice) + 1) / 100 * 100;
         tickLower = tickLower - (tickLower % 200);
     } else {
         // calculate square root of the price for tokenB per eth
@@ -36,7 +37,8 @@ function calculatePrices(address tokenA, address tokenB, uint256 ethPricePerToke
         uint256 quotient = oneEthScaled / ethPricePerToken;
         // square root price the liquidity begins at
         sqrtPrice = uint160(FixedPointMathLib.sqrt(quotient) * q / FixedPointMathLib.sqrt(scale));
-        tickUpper = TickMath.getTickAtSqrtRatio(sqrtPrice) / 100 * 100 - 100;
+        // we just - 1 to adjust the tick in the case where the sqrtPrice is perfectly divisible by 200
+        tickUpper = (TickMath.getTickAtSqrtRatio(sqrtPrice) - 1) / 100 * 100;
         tickUpper = tickUpper - (tickUpper % 200);
     }
 }
