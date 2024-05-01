@@ -24,7 +24,9 @@ contract testMetalFunFactoryV2 is Test {
         vm.assume(recipientAmount < totalSupply / 100);
 
         for (uint256 j = 0; j < 5; j++) {
-            metalFunFactoryV2.deploy("TestToken", "TT", wantPrice, totalSupply, recipient, recipientAmount);
+            metalFunFactoryV2.deploy(
+                "TestToken", "TT", wantPrice, totalSupply, recipient, recipientAmount
+            );
         }
         console2.log(unicode"Pass ✅ for price: ", wantPrice);
     }

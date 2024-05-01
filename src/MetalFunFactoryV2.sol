@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {POOL_FEE} from "./Constants.sol";
 import {calculatePrices} from "./lib/priceCalc.sol";
-import {getAddresses} from "./lib/Addresses.sol";
+import {getAddresses} from "./lib/addresses.sol";
 import {InstantLiquidityToken} from "./InstantLiquidityToken.sol";
 import {INonfungiblePositionManager} from "./TokenFactory.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
