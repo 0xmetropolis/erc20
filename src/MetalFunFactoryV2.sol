@@ -13,6 +13,8 @@ import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 contract MetalFunFactoryV2 is Ownable, ERC721Holder {
     error UNSUPPORTED_CHAIN();
+    error INVALID_RECIPIENT_AMOUNT();
+    error PRICE_TOO_HIGH();
 
     event TokenFactoryDeployment(
         address indexed token,
@@ -171,7 +173,10 @@ contract MetalFunFactoryV2 is Ownable, ERC721Holder {
         address _recipient,
         uint256 _recipientAmount
     ) public returns (InstantLiquidityToken token, uint256 lpTokenId) {
-        if (_recipientAmount > _totalSupply) revert("Recipient amount exceeds total supply");
+        // recipient amount must be less or equal to the total supply
+        if (_recipientAmount > _totalSupply) revert INVALID_RECIPIENT_AMOUNT();
+        // the initial price must be at least 2% less than 1 eth
+        if (_initialPricePerEth > 0.98 ether) revert PRICE_TOO_HIGH();
 
         (token, lpTokenId) =
             _deploy(_name, _symbol, _initialPricePerEth, _totalSupply, _recipient, _recipientAmount);

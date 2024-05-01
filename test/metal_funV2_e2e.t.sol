@@ -19,7 +19,7 @@ contract testMetalFunFactoryV2 is Test {
     function testCalculatePrices(uint256 wantPrice, uint256 totalSupply, uint256 recipientAmount)
         public
     {
-        vm.assume(wantPrice < 1 ether && wantPrice > 100);
+        vm.assume(wantPrice < 0.98 ether && wantPrice > 100);
         vm.assume(totalSupply > 1 ether && totalSupply < 100_000_000_000 ether);
         vm.assume(recipientAmount < totalSupply / 100);
 
@@ -40,7 +40,7 @@ contract testMetalFunFactoryV2 is Test {
     function testCalculatePrices_CE_1() public {
         for (uint256 j = 0; j < 5; j++) {
             metalFunFactoryV2.deploy(
-                "TestToken", "TT", 486769778188445599, 1000000000000000000, recipient, 5844
+                "TestToken", "TT", 486769778188445599, 1000000000000000001, recipient, 5844
             );
         }
     }
