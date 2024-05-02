@@ -18,4 +18,4 @@ remappings = [
 line_length = 100
 tab_width = 4
 [fuzz]
-runs = 40
+runs = 1024
