@@ -162,7 +162,6 @@ contract TokenFactory is Ownable, ERC721Holder {
         (address token0, address token1) = tokenIsLessThanWeth ? (token, weth) : (weth, token);
         (int24 tickLower, int24 tickUpper) =
             tokenIsLessThanWeth ? (int24(-220400), int24(0)) : (int24(0), int24(220400));
-                                //       -216600                                216600
         (uint256 amt0, uint256 amt1) = tokenIsLessThanWeth
             ? (uint256(POOL_AMOUNT), uint256(0))
             : (uint256(0), uint256(POOL_AMOUNT));
@@ -185,8 +184,6 @@ contract TokenFactory is Ownable, ERC721Holder {
 
         initialSqrtPrice =
             tokenIsLessThanWeth ? 1252685732681638336686364 : 5010664478791732988152496286088527;
-
-        //  tokenIsLessThanWeth ? 2374716772012394972971008 : 2643305428826910585518143993544704;
     }
 
     function _deploy(address _recipient, string memory _name, string memory _symbol)

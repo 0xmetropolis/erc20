@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import {Test, console2} from "forge-std/Test.sol";
 import {MetalFunFactoryV2, INonfungiblePositionManager} from "../src/MetalFunFactoryV2.sol";
 import {calculatePrices, TickMath} from "../src/lib/priceCalc.sol";
-import {console2} from "forge-std/console2.sol";
 
 contract testMetalFunFactoryV2 is Test {
     address recipient = address(0x0123);
@@ -28,7 +27,6 @@ contract testMetalFunFactoryV2 is Test {
                 "TestToken", "TT", wantPrice, totalSupply, recipient, recipientAmount
             );
         }
-        console2.log(unicode"Pass ✅ for price: ", wantPrice);
     }
 
     /**

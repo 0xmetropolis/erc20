@@ -8,7 +8,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {console} from "forge-std/console.sol";
 
 contract MetalFunFactory is Ownable, ERC721Holder {
     uint256 immutable TOTAL_SUPPLY = 923_500_000 ether;
