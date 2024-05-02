@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Test} from "forge-std/Test.sol";
 import {MetalFunFactoryV2, INonfungiblePositionManager} from "../src/MetalFunFactoryV2.sol";
 import {calculatePrices, TickMath} from "../src/lib/priceCalc.sol";
-import {IERC20} from "@openzeppelin/contracts/token//ERC20/ERC20.sol";
+import {InstantLiquidityToken} from "../src/InstantLiquidityToken.sol";
 
 contract testMetalFunFactoryV2 is Test {
     address recipient = address(0x0123);
@@ -24,12 +24,12 @@ contract testMetalFunFactoryV2 is Test {
         recipientAmount = bound(recipientAmount, 0, totalSupply / 100);
 
         for (uint256 j = 0; j < 5; j++) {
-            (,, address tokenAddress) = metalFunFactoryV2.deploy(
+            (InstantLiquidityToken token,) = metalFunFactoryV2.deploy(
                 "TestToken", "TT", wantPrice, totalSupply, recipient, recipientAmount
             );
 
             // Check recipient balance is the same as the recipientAmount after deployment
-            uint256 balance = IERC20(tokenAddress).balanceOf(recipient);
+            uint256 balance = token.balanceOf(recipient);
             assertEq(
                 balance, recipientAmount, "Recipient did not receive the correct amount of tokens"
             );
