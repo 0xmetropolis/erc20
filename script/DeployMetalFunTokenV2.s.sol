@@ -12,7 +12,7 @@ contract DeployMetalFunTokenV2 is Script {
 
     function _run(address _factory) public returns (InstantLiquidityToken, uint256) {
         MetalFunFactoryV2 factory = MetalFunFactoryV2(_factory);
-        (InstantLiquidityToken token, uint256 lpTokenId) =
+        (InstantLiquidityToken token, uint256 lpTokenId, address tokenAddress) =
             factory.deploy("", "", 0.01 ether, 1000_000_000, address(0), 0);
 
         console.log("token", address(token));

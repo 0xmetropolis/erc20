@@ -172,7 +172,7 @@ contract MetalFunFactoryV2 is Ownable, ERC721Holder {
         uint256 _totalSupply,
         address _recipient,
         uint256 _recipientAmount
-    ) public returns (InstantLiquidityToken token, uint256 lpTokenId) {
+    ) public returns (InstantLiquidityToken token, uint256 lpTokenId, address tokenAddress) {
         // recipient amount must be less or equal to the total supply
         if (_recipientAmount > _totalSupply) revert INVALID_RECIPIENT_AMOUNT();
         // the initial price must be at least 2% less than 1 eth
@@ -182,6 +182,7 @@ contract MetalFunFactoryV2 is Ownable, ERC721Holder {
             _deploy(_name, _symbol, _initialPricePerEth, _totalSupply, _recipient, _recipientAmount);
 
         emit TokenFactoryDeployment(address(token), lpTokenId, msg.sender, _name, _symbol);
+        return (token, lpTokenId, address(token));
     }
 
     function collectFees(address _recipient, uint256[] memory _tokenIds) public onlyOwner {
