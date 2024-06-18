@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 import {AirdropFactory, InstantLiquidityToken} from "../src/AirdropFactory.sol";
 
 contract DeployAirdropToken is Script {
@@ -21,9 +21,7 @@ contract DeployAirdropToken is Script {
         AirdropFactory factory = AirdropFactory(_factory);
 
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            factory.deployAndAirdrop("test", "TEST", 0.001 ether, 1_000_000, 1_000, _recipients);
-
-        console.log("token", address(token));
+            factory.deployAndAirdrop("test", "TEST", 0.01 ether, 1_000_000_000, 253_000, _recipients);
 
         return (token, lpTokenId);
     }
@@ -35,9 +33,7 @@ contract DeployAirdropToken is Script {
         AirdropFactory factory = AirdropFactory(_factory);
 
       (InstantLiquidityToken token, uint256 lpTokenId) =
-            factory.deployAndAirdrop("test", "TEST", 0.001 ether, 1_000_000, 1_000, _recipients);
-
-        console.log("token", address(token));
+            factory.deployAndAirdrop("test", "TEST", 0.01 ether, 1_000_000_000, 253_000, _recipients);
 
         return (token, lpTokenId);
     }

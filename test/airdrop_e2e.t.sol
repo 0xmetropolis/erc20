@@ -41,10 +41,10 @@ contract TestEndToEndAirdrop is Test {
     function deployAndRun(AirdropFactory _factory, address[] memory _recipients, uint256 _recipientAmount) internal {
         // @spec can deploy a token
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            deployAirdropToken._runWithAirdropNoOwner(address(_factory), _recipients);
+            deployAirdropToken._runWithAirdrop(address(_factory), _recipients);
 
         // @spec calculate expected amount for each recipient plus owner
-        uint256 expectedAmount = _recipientAmount / _recipients.length; // Plus owner
+        uint256 expectedAmount = _recipientAmount / (_recipients.length + 1); // Plus owner
 
         // @spec assert airdropERC20 for each of the recipients, check balances before airdrop and after.
         for (uint256 i; i < _recipients.length; i++) {
@@ -95,7 +95,7 @@ contract TestEndToEndAirdrop is Test {
     function test_endToEnd(uint8 addressCount) public {
         AirdropFactory factory = deployAirdropFactory._run(owner);
         address[] memory fuzzRecipients = new address[](addressCount);
-        uint256 recipientAmount = 1_000;
+        uint256 recipientAmount = 253_000;
 
         for (uint8 i = 0; i < addressCount; i++) {
             fuzzRecipients[i] = address(uint160(i + 1));

@@ -77,7 +77,7 @@ contract AirdropFactory is MetalFunFactoryV2 {
     ) public returns (InstantLiquidityToken, uint256) {
         // deploy the token, override the recipient for now
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            _deploy({_name: name, _symbol: symbol, _initialPricePerEth: initialPricePerEth, _totalSupply: totalSupply, _recipient: address(0), _recipientAmount: 0});
+            _deploy({_name: name, _symbol: symbol, _initialPricePerEth: initialPricePerEth, _totalSupply: totalSupply, _recipient: address(0), _recipientAmount: recipientSupply});
 
         // approve the amount
         token.approve({spender: address(gasliteDrop), value: recipientSupply});
@@ -116,7 +116,7 @@ contract AirdropFactory is MetalFunFactoryV2 {
 
         // deploy the token
         (InstantLiquidityToken token, uint256 lpTokenId) =
-          _deploy({_name: name, _symbol: symbol, _initialPricePerEth: initialPricePerEth, _totalSupply: totalSupply, _recipient: address(0), _recipientAmount: 0});
+          _deploy({_name: name, _symbol: symbol, _initialPricePerEth: initialPricePerEth, _totalSupply: totalSupply, _recipient: address(0), _recipientAmount: recipientSupply});
 
         // approve the amount
         token.approve({spender: address(gasliteDrop), value: recipientSupply});
