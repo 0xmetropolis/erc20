@@ -20,7 +20,7 @@ contract TestEndToEndAirdrop is Test {
     DeployAirdropToken internal deployAirdropToken;
     AirdropFactory internal tokenFactory;
 
-    uint256 internal constant OWNER_ALLOCATION = 0;
+    uint256 internal constant AIRDROP_ALLOCATION = 253_000;
     address internal owner = address(0xB0b);
     address internal feeRecipient = address(0xFe3);
     address internal rando = address(0x111111);
@@ -95,7 +95,6 @@ contract TestEndToEndAirdrop is Test {
     function test_endToEnd(uint8 addressCount) public {
         AirdropFactory factory = deployAirdropFactory._run(owner);
         address[] memory fuzzRecipients = new address[](addressCount);
-        uint256 recipientAmount = 253_000;
 
         for (uint8 i = 0; i < addressCount; i++) {
             fuzzRecipients[i] = address(uint160(i + 1));
@@ -105,7 +104,7 @@ contract TestEndToEndAirdrop is Test {
         assertEq(factory.owner(), address(owner));
 
         for (uint256 i; i < 25; i++) {
-            deployAndRun(factory, fuzzRecipients, recipientAmount);
+            deployAndRun(factory, fuzzRecipients, AIRDROP_ALLOCATION);
         }
     }
 
@@ -129,7 +128,7 @@ contract TestEndToEndAirdrop is Test {
         if (addressCount == 0) return;
 
         // @spec calculate expected amount for each recipient plus owner
-        uint256 expectedAmount = OWNER_ALLOCATION / (fuzzRecipients.length);
+        uint256 expectedAmount = AIRDROP_ALLOCATION / fuzzRecipients.length;
 
         // @spec assert airdropERC20 for each of the recipients, check balances after airdrop.
         for (uint256 i; i < fuzzRecipients.length; i++) {
