@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./MetalFunFactoryV2.sol";
+import "./MetalAirdropFactory.sol";
 
 interface IGasliteDrop {
     function airdropERC20(
@@ -24,7 +24,7 @@ interface IGasliteDrop {
 
 IGasliteDrop constant gasliteDrop = IGasliteDrop(0x09350F89e2D7B6e96bA730783c2d76137B045FEF);
 
-contract AirdropFactory is MetalFunFactoryV2 {
+contract AirdropFactory is MetalAirdropFactory {
     event DeploymentWithAirdrop(
         address indexed token,
         uint256 indexed lpTokenId,
@@ -33,7 +33,7 @@ contract AirdropFactory is MetalFunFactoryV2 {
         string symbol
     );
 
-    constructor(address _owner) MetalFunFactoryV2(_owner) {}
+    constructor(address _owner) MetalAirdropFactory(_owner) {}
 
     function _getAddressAndAmounts(address owner, address[] calldata _addresses, uint256 recipientSupply)
         internal
@@ -70,72 +70,44 @@ contract AirdropFactory is MetalFunFactoryV2 {
     function deployAndAirdrop(
         string calldata name,
         string calldata symbol,
-        uint256 initialPricePerEth,
-        uint256 totalSupply,
-        uint256 recipientSupply,
-        address[] calldata addresses
+        uint256 _initialPricePerEth,
+        uint256 _totalSupply,
+        uint256 _minterSupply,
+        uint256 _airdropSupply,
+        address _minterAddress,
+        address[] calldata _airdropAddresses
     ) public returns (InstantLiquidityToken, uint256) {
-        // deploy the token, override the recipient for now
-        (InstantLiquidityToken token, uint256 lpTokenId) =
-            _deploy({_name: name, _symbol: symbol, _initialPricePerEth: initialPricePerEth, _totalSupply: totalSupply, _recipient: address(0), _recipientAmount: recipientSupply});
+        // determine pool amount
+        uint256 poolSupply = _totalSupply - _minterSupply - _airdropSupply;
 
-        // approve the amount
-        token.approve({spender: address(gasliteDrop), value: recipientSupply});
+        //
+        (InstantLiquidityToken token, uint256 lpTokenId) =
+            deploy({_name: name, _symbol: symbol, _initialPricePerEth: _initialPricePerEth, _totalSupply: _totalSupply, _poolSupply: poolSupply});
+
+
+        // After token initialization and pool creation, transfer the recipient amount
+        if (_minterSupply > 0 || _minterAddress != address(0)) {
+            InstantLiquidityToken(token).transfer(_minterAddress, _minterSupply);
+        }
+
+        // approve the airdrop amount
+        token.approve({spender: address(gasliteDrop), value: _airdropSupply});
 
         (address[] memory recipients, uint256[] memory amounts) =
-            _getAddressAndAmounts({owner: msg.sender, _addresses: addresses, recipientSupply: recipientSupply});
+            _getAddressAndAmounts({owner: msg.sender, _addresses: _airdropAddresses, recipientSupply: _airdropSupply});
 
-        // airdrop the token
+        // transfer the airdropSupply to airdropAddresses
         gasliteDrop.airdropERC20({
             _token: address(token),
-            _addresses: recipients,
+            _addresses: _airdropAddresses,
             _amounts: amounts,
-            _totalAmount: recipientSupply
+            _totalAmount: _airdropSupply
         });
 
         emit DeploymentWithAirdrop({
             token: address(token),
             lpTokenId: lpTokenId,
-            recipients: recipients,
-            name: name,
-            symbol: symbol
-        });
-
-        return (token, lpTokenId);
-    }
-
-    function deployAndAirdrop_noOwnerDistribution(
-        string calldata name,
-        string calldata symbol,
-        uint256 initialPricePerEth,
-        uint256 totalSupply,
-        uint256 recipientSupply,
-        address[] calldata addresses
-    ) public returns (InstantLiquidityToken, uint256) {
-        if (addresses.length == 0) revert("must specify recipient addresses");
-
-        // deploy the token
-        (InstantLiquidityToken token, uint256 lpTokenId) =
-          _deploy({_name: name, _symbol: symbol, _initialPricePerEth: initialPricePerEth, _totalSupply: totalSupply, _recipient: address(0), _recipientAmount: recipientSupply});
-
-        // approve the amount
-        token.approve({spender: address(gasliteDrop), value: recipientSupply});
-
-        (address[] memory recipients, uint256[] memory amounts) =
-            _getAddressAndAmounts({owner: address(0), _addresses: addresses, recipientSupply: recipientSupply});
-
-        // airdrop the token
-        gasliteDrop.airdropERC20({
-            _token: address(token),
-            _addresses: recipients,
-            _amounts: amounts,
-            _totalAmount: recipientSupply
-        });
-
-        emit DeploymentWithAirdrop({
-            token: address(token),
-            lpTokenId: lpTokenId,
-            recipients: recipients,
+            recipients: _airdropAddresses,
             name: name,
             symbol: symbol
         });
