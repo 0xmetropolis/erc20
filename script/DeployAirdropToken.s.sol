@@ -6,22 +6,30 @@ import {AirdropFactory, InstantLiquidityToken} from "../src/AirdropFactory.sol";
 
 contract DeployAirdropToken is Script {
     function run() public {
-        address[] memory recipients = new address[](2);
-        recipients[0] = address(0xc0ffee);
-        recipients[1] = address(0x123);
+        address[] memory airdropAddresses = new address[](2);
+        airdropAddresses[0] = address(0xc0ffee);
+        airdropAddresses[1] = address(0x123);
 
         vm.broadcast();
         // TODO deploy factory, determine real address and replace 0 address with it.
-        _run(address(0), recipients[0], 1, recipients);
+        _run(address(0), "", "", 0.01 ether, 1_000_000_000, 5_000, 253_000, airdropAddresses[0], airdropAddresses);
     }
-    function _run(address _factory, address _minter, uint256 _minterSupply, address[] memory _airdropAddresses)
-        public
-        returns (InstantLiquidityToken, uint256)
-    {
+
+    function _run(
+        address _factory,
+        string memory _name,
+        string memory _symbol,
+        uint256 _initialPricePerEth,
+        uint256 _totalSupply,
+        uint256 _minterSupply,
+        uint256 _airdropSupply,
+        address _minterAddress,
+        address[] memory _airdropAddresses)
+    public returns (InstantLiquidityToken, uint256) {
         AirdropFactory factory = AirdropFactory(_factory);
 
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            factory.deployAndAirdrop("", "", 0.01 ether, 1_000_000_000, _minterSupply, 253_000, _minter, _airdropAddresses);
+            factory.deployAndAirdrop(_name, _symbol, _initialPricePerEth, _totalSupply, _minterSupply, _airdropSupply, _minterAddress, _airdropAddresses);
 
         console.log("token", address(token));
 

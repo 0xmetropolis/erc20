@@ -20,8 +20,9 @@ contract TestEndToEndAirdrop is Test {
     DeployAirdropToken internal deployAirdropToken;
     AirdropFactory internal tokenFactory;
 
-    uint256 internal constant AIRDROP_ALLOCATION = 253_000;
-    uint256 internal constant MINTER_AMOUNT = 5_000;
+    uint256 internal constant TOTAL_SUPPLY = 1_000_000_000;
+    uint256 internal constant AIRDROP_SUPPLY = 253_000;
+    uint256 internal constant MINTER_SUPPLY = 5_000;
     address internal owner = address(0xB0b);
     address internal minter = address(0x789);
     address internal feeRecipient = address(0xFe3);
@@ -40,14 +41,13 @@ contract TestEndToEndAirdrop is Test {
         deployAirdropToken = new DeployAirdropToken();
     }
 
-    function deployAndRun(AirdropFactory _factory,
-        address[] memory _airdropAddresses, uint256 _minterSupply) internal {
+    function deployAndRun(AirdropFactory _factory, address[] memory _airdropAddresses, uint256 _minterSupply) internal {
         // @spec can deploy a token
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            deployAirdropToken._run(address(_factory), minter, _minterSupply, _airdropAddresses);
+            deployAirdropToken._run(address(_factory), "", "", 0.01 ether, TOTAL_SUPPLY, _minterSupply, AIRDROP_SUPPLY, minter, _airdropAddresses);
 
         // @spec calculate expected amount for each recipient
-        uint256 expectedAmount = AIRDROP_ALLOCATION / (_airdropAddresses.length);
+        uint256 expectedAmount = AIRDROP_SUPPLY / (_airdropAddresses.length);
 
         // @spec assert airdropERC20 for each of the recipients, check balances before airdrop and after.
         for (uint256 i; i < _airdropAddresses.length; i++) {
@@ -109,7 +109,7 @@ contract TestEndToEndAirdrop is Test {
         assertEq(factory.owner(), address(owner));
 
         // test with a minter
-        deployAndRun(factory, fuzzRecipients, MINTER_AMOUNT);
+        deployAndRun(factory, fuzzRecipients, MINTER_SUPPLY);
         // test without a minter
         deployAndRun(factory, fuzzRecipients, 0);
     }
