@@ -42,9 +42,13 @@ contract TestEndToEndAirdrop is Test {
     }
 
     function deployAndRun(AirdropFactory _factory, address[] memory _airdropAddresses, uint256 _minterSupply) internal {
+        if (_airdropAddresses.length == 0) vm.expectRevert("must specify recipient addresses");
+
         // @spec can deploy a token
         (InstantLiquidityToken token, uint256 lpTokenId) =
             deployAirdropToken._run(address(_factory), "", "", 0.01 ether, TOTAL_SUPPLY, _minterSupply, AIRDROP_SUPPLY, minter, _airdropAddresses);
+
+        if (_airdropAddresses.length == 0) return;
 
         // @spec calculate expected amount for each recipient
         uint256 expectedAmount = AIRDROP_SUPPLY / (_airdropAddresses.length);
@@ -95,13 +99,13 @@ contract TestEndToEndAirdrop is Test {
         _factory.collectFees(feeRecipient, tokenIds);
     }
 
-    function test_endToEnd() public {
+    function test_fuzz_endToEnd(uint8 count) public {
 
-        uint8 addressCount = 253;
+        //uint8 addressCount = 253;
         AirdropFactory factory = deployAirdropFactory._run(owner);
-        address[] memory fuzzRecipients = new address[](addressCount);
+        address[] memory fuzzRecipients = new address[](count);
 
-        for (uint8 i = 0; i < addressCount; i++) {
+        for (uint8 i = 0; i < count; i++) {
             fuzzRecipients[i] = address(uint160(i + 1));
         }
 

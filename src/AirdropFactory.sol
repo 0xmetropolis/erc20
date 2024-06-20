@@ -25,7 +25,6 @@ interface IGasliteDrop {
 IGasliteDrop constant gasliteDrop = IGasliteDrop(0x09350F89e2D7B6e96bA730783c2d76137B045FEF);
 
 contract AirdropFactory is MetalAirdropFactory {
-    error INVALID_AIRDROP_RECIPIENTS();
 
     event DeploymentWithAirdrop(
         address indexed token,
@@ -67,7 +66,7 @@ contract AirdropFactory is MetalAirdropFactory {
         address[] calldata _airdropAddresses
     ) public returns (InstantLiquidityToken, uint256) {
         // airdrop array needs at least one recipient
-        if (_airdropAddresses.length < 1) revert INVALID_AIRDROP_RECIPIENTS();
+        if (_airdropAddresses.length == 0) revert("must specify recipient addresses");
 
         // determine pool amount
         uint256 poolSupply = _totalSupply - _minterSupply - _airdropSupply;
