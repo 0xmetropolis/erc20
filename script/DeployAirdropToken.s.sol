@@ -24,7 +24,7 @@ contract DeployAirdropToken is Script {
 
         vm.broadcast();
         RunParams memory params = RunParams({
-            factory: 0xCdDCA68c35cf86230EcBcfBA5437e8B97b237A05,
+            factory: 0x13a0dFb64FFaE6BB58bbAB81cA8d17cb259C183f,
             name: "",
             symbol: "",
             initialPricePerEth: 0.01 ether,

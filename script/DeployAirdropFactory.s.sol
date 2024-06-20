@@ -15,7 +15,7 @@ contract DeployAirdropFactory is Script {
         vm.broadcast();
         AirdropFactory tokenFactory = new AirdropFactory{salt: AIRDROP_FACTORY_SALT}(_owner);
 
-        console.log("tokenFactory", address(tokenFactory));
+        console.log("Airdrop Factory: ", address(tokenFactory));
 
         return tokenFactory;
     }
