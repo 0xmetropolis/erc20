@@ -11,9 +11,9 @@ contract DeployAirdropToken is Script {
         airdropAddresses[1] = address(0x123);
 
         vm.broadcast();
-        // TODO deploy factory, determine real address and replace 0 address with it.
-        _run(address(0), "", "", 0.01 ether, 1_000_000_000, 5_000, 253_000, airdropAddresses[0], airdropAddresses);
+        _run(0xCdDCA68c35cf86230EcBcfBA5437e8B97b237A05, "", "", 0.01 ether, 1_000_000_000, 5_000, 253_000, airdropAddresses[0], airdropAddresses);
     }
+
 
     function _run(
         address _factory,

@@ -63,6 +63,14 @@ Example:
 forge script script/DeployMetalFunFactoryV2.s.sol  --rpc-url https://eth-sepolia.g.alchemy.com/v2/ALCHEMY_SEPOLIA_EY  --sender 0x123 --private-key PRIVATE_KEY --optimize --optimizer-runs 200 --verify --verifier-url https://api-sepolia.etherscan.io/api --etherscan-api-key ETHERSCAN_KEY --broadcast --chain-id 11155111 --constructor-args 0x0
 ```
 
+### Verify
+
+If the verification fails on deploy:
+
+```shell
+forge verify-contract --verifier-url https://api-sepolia.etherscan.io/api --etherscan-api-key ETHERSCAN_KEY 0x123contractAddress... "PATH:src/FundMe.sol:FundMe"
+```
+
 ### Cast
 
 ```shell
