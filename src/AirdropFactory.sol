@@ -25,6 +25,8 @@ interface IGasliteDrop {
 IGasliteDrop constant gasliteDrop = IGasliteDrop(0x09350F89e2D7B6e96bA730783c2d76137B045FEF);
 
 contract AirdropFactory is MetalAirdropFactory {
+    error INVALID_AIRDROP_RECIPIENTS();
+
     event DeploymentWithAirdrop(
         address indexed token,
         uint256 indexed lpTokenId,
@@ -35,29 +37,25 @@ contract AirdropFactory is MetalAirdropFactory {
 
     constructor(address _owner) MetalAirdropFactory(_owner) {}
 
-    function _getAddressAndAmounts(address owner, address[] calldata _addresses, uint256 recipientSupply)
+    function _getAirdropAddressAndAmounts(address[] calldata _addresses, uint256 _airdropSupply)
         internal
         pure
         returns (address[] memory, uint256[] memory)
     {
-        bool includeOwner = owner != address(0);
         // initialize the array
         address[] memory newAddresses =
-            new address[](includeOwner ? _addresses.length + 1 : _addresses.length);
+            new address[](_addresses.length);
 
         // copy the calldata into memory
         for (uint256 i; i < _addresses.length; ++i) {
             newAddresses[i] = _addresses[i];
         }
 
-        // add the owner to the list
-        if (includeOwner) newAddresses[_addresses.length] = owner;
-
         // initialize the amounts array
         uint256[] memory amounts = new uint256[](newAddresses.length);
 
         // figure how much should go to each owner
-        uint256 fractionalAmount = recipientSupply / newAddresses.length;
+        uint256 fractionalAmount = _airdropSupply / newAddresses.length;
 
         // load up the amounts
         for (uint256 i; i < newAddresses.length; ++i) {
@@ -77,6 +75,9 @@ contract AirdropFactory is MetalAirdropFactory {
         address _minterAddress,
         address[] calldata _airdropAddresses
     ) public returns (InstantLiquidityToken, uint256) {
+        // airdrop array needs at least one recipient
+        if (_airdropAddresses.length < 1) revert INVALID_AIRDROP_RECIPIENTS();
+
         // determine pool amount
         uint256 poolSupply = _totalSupply - _minterSupply - _airdropSupply;
 
@@ -85,8 +86,8 @@ contract AirdropFactory is MetalAirdropFactory {
             deploy({_name: name, _symbol: symbol, _initialPricePerEth: _initialPricePerEth, _totalSupply: _totalSupply, _poolSupply: poolSupply});
 
 
-        // After token initialization and pool creation, transfer the recipient amount
-        if (_minterSupply > 0 || _minterAddress != address(0)) {
+        // After token initialization and pool creation, transfer to the optional minter address
+        if (_minterSupply > 0) {
             InstantLiquidityToken(token).transfer(_minterAddress, _minterSupply);
         }
 
@@ -94,7 +95,7 @@ contract AirdropFactory is MetalAirdropFactory {
         token.approve({spender: address(gasliteDrop), value: _airdropSupply});
 
         (address[] memory recipients, uint256[] memory amounts) =
-            _getAddressAndAmounts({owner: msg.sender, _addresses: _airdropAddresses, recipientSupply: _airdropSupply});
+            _getAirdropAddressAndAmounts({_addresses: _airdropAddresses, _airdropSupply: _airdropSupply});
 
         // transfer the airdropSupply to airdropAddresses
         gasliteDrop.airdropERC20({

@@ -21,7 +21,9 @@ contract TestEndToEndAirdrop is Test {
     AirdropFactory internal tokenFactory;
 
     uint256 internal constant AIRDROP_ALLOCATION = 253_000;
+    uint256 internal constant MINTER_AMOUNT = 5_000;
     address internal owner = address(0xB0b);
+    address internal minter = address(0x789);
     address internal feeRecipient = address(0xFe3);
     address internal rando = address(0x111111);
 
@@ -39,33 +41,26 @@ contract TestEndToEndAirdrop is Test {
     }
 
     function deployAndRun(AirdropFactory _factory,
-        string calldata _name,
-        string calldata _symbol,
-        uint256 _initialPricePerEth,
-        uint256 _totalSupply,
-        uint256 _minterSupply,
-        uint256 _airdropSupply,
-        address _minterAddress,
-        address[] calldata _airdropAddresses) internal {
+        address[] memory _airdropAddresses, uint256 _minterSupply) internal {
         // @spec can deploy a token
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            deployAirdropToken._runWithAirdrop(address(_factory), _recipients);
+            deployAirdropToken._run(address(_factory), minter, _minterSupply, _airdropAddresses);
 
-        // @spec calculate expected amount for each recipient plus owner
-        uint256 expectedAmount = _recipientAmount / (_recipients.length + 1); // Plus owner
+        // @spec calculate expected amount for each recipient
+        uint256 expectedAmount = AIRDROP_ALLOCATION / (_airdropAddresses.length);
 
         // @spec assert airdropERC20 for each of the recipients, check balances before airdrop and after.
-        for (uint256 i; i < _recipients.length; i++) {
+        for (uint256 i; i < _airdropAddresses.length; i++) {
             assertEq(
-                token.balanceOf(_recipients[i]), expectedAmount, "expected amount does not match"
+                token.balanceOf(_airdropAddresses[i]), expectedAmount, "expected airdrop amount does not match"
             );
         }
 
-        // @spec assert owner balance
+        // @spec assert minter balance
         assertEq(
-            token.balanceOf(address(deployAirdropToken)),
-            expectedAmount,
-            "expected owner amount does not match"
+            token.balanceOf(address(minter)),
+            _minterSupply,
+            "expected minter amount does not match"
         );
 
         // @spec the factory should be the owner of the LP token
@@ -100,85 +95,24 @@ contract TestEndToEndAirdrop is Test {
         _factory.collectFees(feeRecipient, tokenIds);
     }
 
-    function test_endToEnd(uint8 addressCount) public {
-        // TODO Hard code
-        string calldata name = "test";
-        string calldata symbol = "TEST";
-        uint256 initialPricePerEth = 0.01 ether;
-        uint256 totalSupply = 1_000_000_000;
-        uint256 minterSupply = 5_000;
-        uint256 airdropSupply = 253_000;
-        address minterAddress = address(0x123);
-        address[] calldata airdropAddresses = new address[](2);
-        airdropAddresses[0] = address(0xc0ffee);
-        airdropAddresses[1] = address(0xabc);
-        airdropAddresses[2] = address(0x987);
+    function test_endToEnd() public {
 
+        uint8 addressCount = 253;
         AirdropFactory factory = deployAirdropFactory._run(owner);
-        //address[] memory fuzzRecipients = new address[](addressCount);
+        address[] memory fuzzRecipients = new address[](addressCount);
 
-        // for (uint8 i = 0; i < addressCount; i++) {
-        //     airdropAddresses[i] = address(uint160(i + 1));
-        // }
+        for (uint8 i = 0; i < addressCount; i++) {
+            fuzzRecipients[i] = address(uint160(i + 1));
+        }
 
         // @spec owner should be correctly initialized
         assertEq(factory.owner(), address(owner));
 
-        deployAndRun(factory,
-        string calldata name,
-        string calldata symbol,
-        uint256 _initialPricePerEth,
-        uint256 _totalSupply,
-        uint256 _minterSupply,
-        uint256 _airdropSupply,
-        address _minterAddress,
-        address[] calldata _airdropAddresses) internal {
-        // for (uint256 i; i < 25; i++) {
-        //     deployAndRun(factory, airdropAddresses, AIRDROP_ALLOCATION);
-        // }
+        // test with a minter
+        deployAndRun(factory, fuzzRecipients, MINTER_AMOUNT);
+        // test without a minter
+        deployAndRun(factory, fuzzRecipients, 0);
     }
 
-    // function test_fuzz_DeployWithAirdrop_noOwnerAllocation(uint8 addressCount) public {
-    //     tokenFactory = deployAirdropFactory._run(owner);
-    //     address[] memory fuzzRecipients = new address[](addressCount);
 
-    //     // @spec populate the recipients array with generated addresses.
-    //     for (uint8 i = 0; i < addressCount; i++) {
-    //         fuzzRecipients[i] = address(uint160(i + 1));
-    //     }
-
-    //     if (addressCount == 0) vm.expectRevert("must specify recipient addresses");
-
-    //     // @spec deploy token and perform airdrop.
-    //     // @spec should call run with airdrop successfully.
-    //     // @spec should distribute the correct amount of tokens to each recipient and owner.
-    //     (InstantLiquidityToken token,) =
-    //         deployAirdropToken._runWithAirdropNoOwner(address(tokenFactory), fuzzRecipients);
-    //     console.log('token', address(token));
-
-    //     console.log('addressCount', addressCount);
-    //     if (addressCount == 0) return;
-
-    //     // @spec calculate expected amount for each recipient plus owner
-    //     uint256 expectedAmount = AIRDROP_ALLOCATION / fuzzRecipients.length;
-    //     console.log('fuzzRecipients', fuzzRecipients.length);
-    //     console.log('AIRDROP_ALLOCATION', AIRDROP_ALLOCATION);
-    //     console.log('expectedAmount', expectedAmount);
-
-    //     // @spec assert airdropERC20 for each of the recipients, check balances after airdrop.
-    //     for (uint256 i; i < fuzzRecipients.length; i++) {
-    //         assertEq(
-    //             token.balanceOf(fuzzRecipients[i]), expectedAmount, "expected amount does not match"
-    //         );
-    //     }
-
-        // @spec assert owner receives full amount if no other recipients are present.
-        // if (fuzzRecipients.length == 0) {
-        //     assertEq(
-        //         token.balanceOf(address(deployAirdropToken)),
-        //         AIRDROP_ALLOCATION,
-        //         "Owner's expected amount does not match"
-        //     );
-        // }
-   // }
 }

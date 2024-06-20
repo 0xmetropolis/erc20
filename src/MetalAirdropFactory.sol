@@ -169,7 +169,6 @@ contract MetalAirdropFactory is Ownable, ERC721Holder {
     ) public returns (InstantLiquidityToken token, uint256 lpTokenId) {
         // recipient amount must be less or equal to the total supply
         if (_poolSupply > _totalSupply) revert INVALID_RECIPIENT_AMOUNT();
-        //if (_recipientAmount > _totalSupply) revert INVALID_RECIPIENT_AMOUNT();
 
         // the initial price must be at least 2% less than 1 eth
         if (_initialPricePerEth > 0.98 ether) revert PRICE_TOO_HIGH();

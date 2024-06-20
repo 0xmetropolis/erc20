@@ -12,30 +12,16 @@ contract DeployAirdropToken is Script {
 
         vm.broadcast();
         // TODO deploy factory, determine real address and replace 0 address with it.
-        _runWithMinter(address(0), recipients[0], recipients);
+        _run(address(0), recipients[0], 1, recipients);
     }
-    function _runWithMinter(address _factory, address _minter, address[] memory _recipients)
+    function _run(address _factory, address _minter, uint256 _minterSupply, address[] memory _airdropAddresses)
         public
         returns (InstantLiquidityToken, uint256)
     {
         AirdropFactory factory = AirdropFactory(_factory);
 
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            factory.deployAndAirdrop("", "", 0.01 ether, 1_000_000_000, 5_000, 253_000, _minter, _recipients);
-
-        console.log("token", address(token));
-
-        return (token, lpTokenId);
-    }
-
-    function _runWithNoMinter(address _factory, address[] memory _recipients)
-        public
-        returns (InstantLiquidityToken, uint256)
-    {
-        AirdropFactory factory = AirdropFactory(_factory);
-
-        (InstantLiquidityToken token, uint256 lpTokenId) =
-            factory.deployAndAirdrop("", "", 0.01 ether, 1_000_000_000, 0, 253_000, address(0), _recipients);
+            factory.deployAndAirdrop("", "", 0.01 ether, 1_000_000_000, _minterSupply, 253_000, _minter, _airdropAddresses);
 
         console.log("token", address(token));
 
