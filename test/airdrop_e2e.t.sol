@@ -44,9 +44,21 @@ contract TestEndToEndAirdrop is Test {
     function deployAndRun(AirdropFactory _factory, address[] memory _airdropAddresses, uint256 _minterSupply) internal {
         if (_airdropAddresses.length == 0) vm.expectRevert("must specify recipient addresses");
 
+        DeployAirdropToken.RunParams memory params = DeployAirdropToken.RunParams({
+            factory: address(_factory),
+            name: "",
+            symbol: "",
+            initialPricePerEth: 0.01 ether,
+            totalSupply: TOTAL_SUPPLY,
+            minterSupply: _minterSupply,
+            airdropSupply: AIRDROP_SUPPLY,
+            minterAddress: minter,
+            airdropAddresses: _airdropAddresses
+        });
+
         // @spec can deploy a token
         (InstantLiquidityToken token, uint256 lpTokenId) =
-            deployAirdropToken._run(address(_factory), "", "", 0.01 ether, TOTAL_SUPPLY, _minterSupply, AIRDROP_SUPPLY, minter, _airdropAddresses);
+            deployAirdropToken._run(params);
 
         if (_airdropAddresses.length == 0) return;
 
