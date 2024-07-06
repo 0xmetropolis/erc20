@@ -9,13 +9,15 @@ import {MetalFunFactoryV2} from "../src/MetalFunFactoryV2.sol";
 
 contract DeployMetalFunFactory is Script {
     function run() public returns (MetalFunFactoryV2) {
-        return _run(vm.envAddress("OWNER"));
+        //return _run(vm.envAddress("OWNER"));
+        return _run(msg.sender);
     }
 
     function _run(address _owner) public returns (MetalFunFactoryV2) {
         vm.broadcast();
         MetalFunFactoryV2 metalFunFactoryV2 =
-            new MetalFunFactoryV2{salt: METAL_FUN_FACTORY_V2_SALT}(_owner);
+            // new MetalFunFactoryV2{salt: METAL_FUN_FACTORY_V2_SALT}(_owner);
+            new MetalFunFactoryV2(_owner);
 
         console.log("MetalFunFactory", address(metalFunFactoryV2));
 
