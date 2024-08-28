@@ -9,7 +9,7 @@ import {MetalFunFactoryV2} from "../src/MetalFunFactoryV2.sol";
 
 contract DeployMetalFunFactory is Script {
     function run() public returns (MetalFunFactoryV2) {
-        return _run(vm.envAddress("OWNER"));
+        return _run(0x71e1BB6EA5B84E9Aa55691a1E86223d250a18F8F);
     }
 
     function _run(address _owner) public returns (MetalFunFactoryV2) {
