@@ -33,7 +33,7 @@ contract MetalFunFactoryV2 is Ownable, ERC721Holder {
 
     Storage public s = Storage({
         deploymentNonce: 0,
-        instantLiquidityToken: InstantLiquidityToken(0xD74D14ebe305c93D023C966640788f05593F0fdE)
+        instantLiquidityToken: InstantLiquidityToken(0x37a0f25d6b07fEb6eCc4F53E00157bdF48207F6c)
     });
 
     constructor(address _owner) Ownable(_owner) {
