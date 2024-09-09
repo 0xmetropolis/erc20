@@ -7,7 +7,7 @@ import {MetalFunFactoryV2, InstantLiquidityToken} from "../src/MetalFunFactoryV2
 contract DeployMetalFunTokenV2 is Script {
     function run() public {
         vm.broadcast();
-        _run(0xf0E8778E80D0D012c84F45A501122A77eF3Db099);
+        _run(0xAA801C5aA5C5E087Bc3bA93d82F46Ff3bC304beF);
     }
 
     function _run(address _factory) public returns (InstantLiquidityToken, uint256) {
