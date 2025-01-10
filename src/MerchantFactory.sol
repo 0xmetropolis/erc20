@@ -41,19 +41,27 @@ contract MerchantFactory is Ownable, ERC721Holder {
 
         if (
             // mainnet
+            chainId != 1
             // goerli
+            && chainId != 5
             // arbitrum
+            && chainId != 42161
             // optimism
+            && chainId != 10
             // polygon
+            && chainId != 137
             // bnb
+            && chainId != 56
             // base
+            && chainId != 8453
             // base sepolia
+            && chainId != 84532
             // sepolia
+            && chainId != 11155111
             // zora
+            && chainId != 7777777
             // degen chain
-            chainId != 1 && chainId != 5 && chainId != 42161 && chainId != 10 && chainId != 137
-                && chainId != 56 && chainId != 8453 && chainId != 84532 && chainId != 11155111
-                && chainId != 7777777 && chainId != 666666666
+            && chainId != 666666666
         ) revert UNSUPPORTED_CHAIN();
     }
 
