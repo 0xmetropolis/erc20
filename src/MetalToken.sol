@@ -66,7 +66,6 @@ contract MetalToken is Ownable, ERC721Holder {
         deploymentNonce: 0,
         instantLiquidityToken: InstantLiquidityToken(0xD74D14ebe305c93D023C966640788f05593F0fdE)
     });
-    uint256 public lpReserve;
 
     // Events
     event TokenDeployment(
@@ -86,8 +85,7 @@ contract MetalToken is Ownable, ERC721Holder {
 
     event FeesCollected(address indexed recipient, uint256 indexed nftId);
 
-    constructor(address _owner, uint256 _lpReserve) Ownable(_owner) {
-        lpReserve = _lpReserve;
+    constructor(address _owner) Ownable(_owner) {
 
         uint256 chainId = block.chainid;
         if (
@@ -150,7 +148,7 @@ contract MetalToken is Ownable, ERC721Holder {
      * @param _totalSupply Total supply of tokens
      * @param _merchant Address to receive merchant allocation
      * @param _merchantAmount Amount for merchant
-     * @param _lpAmount Amount for liquidity pool
+     * @param _lpReserve Amount for liquidity pool
      */
     function deployToken(
         string memory _name,
@@ -159,7 +157,7 @@ contract MetalToken is Ownable, ERC721Holder {
         uint256 _totalSupply,
         address _merchant,
         uint256 _merchantAmount,
-        uint256 _lpAmount
+        uint256 _lpReserve
     ) external returns (InstantLiquidityToken token) {
         address tokenAddress;
         {
@@ -180,7 +178,7 @@ contract MetalToken is Ownable, ERC721Holder {
         token = InstantLiquidityToken(tokenAddress);
 
         // Validate total amounts
-        if (_merchantAmount + _lpAmount > _totalSupply) {
+        if (_merchantAmount + _lpReserve > _totalSupply) {
             revert INVALID_AMOUNT();
         }
 
@@ -191,11 +189,11 @@ contract MetalToken is Ownable, ERC721Holder {
 
         // Handle LP creation if needed
         uint256 lpTokenId;
-        if (_lpAmount > 0) {
-            lpTokenId = createLiquidityPool(address(token), _lpAmount, _initialPricePerEth);
+        if (_lpReserve > 0) {
+            lpTokenId = createLiquidityPool(address(token), _lpReserve, _initialPricePerEth);
         }
 
-        emit TokenDeployment(address(token), lpTokenId, _merchant, _name, _symbol, _lpAmount > 0);
+        emit TokenDeployment(address(token), lpTokenId, _merchant, _name, _symbol, _lpReserve > 0);
 
         return token;
     }
@@ -229,10 +227,9 @@ contract MetalToken is Ownable, ERC721Holder {
     {
         // Input validations
         if (_lpAmount == 0) revert INVALID_AMOUNT();
-        if (_lpAmount > lpReserve) revert EXCEEDS_LP_RESERVE();
         if (_initialPricePerEth > 0.98 ether) revert PRICE_TOO_HIGH();
 
-        (address weth, INonfungiblePositionManager positionManager) = getAddresses();
+        (address weth, INonfungiblePositionManager positionManager) = _getAddresses();
 
         InstantLiquidityToken(_token).approve(address(positionManager), _lpAmount);
 
@@ -267,7 +264,7 @@ contract MetalToken is Ownable, ERC721Holder {
      * @param tokenIds Array of LP position NFT IDs
      */
     function collectFees(address recipient, uint256[] memory tokenIds) public onlyOwner {
-        (, INonfungiblePositionManager positionManager) = getAddresses();
+        (, INonfungiblePositionManager positionManager) = _getAddresses();
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             positionManager.collect(
@@ -287,7 +284,7 @@ contract MetalToken is Ownable, ERC721Holder {
      * @dev Returns the chain-specific addresses for WETH and NonFungiblePositionManager
      * @notice This function returns different addresses based on the current chain:
      */
-    function getAddresses()
+    function _getAddresses()
         internal
         view
         returns (address weth, INonfungiblePositionManager nonFungiblePositionManager)

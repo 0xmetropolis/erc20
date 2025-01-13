@@ -45,7 +45,7 @@ contract MetalTokenTest is Test {
     InstantLiquidityToken testToken;
 
     function setUp() public {
-        metalToken = new MetalToken(owner, lpAmount);
+        metalToken = new MetalToken(owner);
 
         // Deploy a test token with initial supply to MerchantToken contract
         vm.startPrank(owner);
@@ -56,7 +56,7 @@ contract MetalTokenTest is Test {
             1_000_000 ether,
             address(metalToken), // Mint to merchant
             100_000 ether, // Amount for merchant
-            0 // No initial LP, we'll create pool later
+            100_000 ether // LP reserve amount
         );
         vm.stopPrank();
     }
@@ -128,8 +128,19 @@ contract MetalTokenTest is Test {
 
         vm.startPrank(owner);
 
+        // Deploy new token with LP reserve
+        InstantLiquidityToken token = metalToken.deployToken(
+            "LPToken",
+            "LPT",
+            initialPricePerEth,
+            totalSupply,
+            address(metalToken),
+            merchantAmount,
+            liquidityAmount // Set LP reserve amount
+        );
+
         // Get initial balance
-        uint256 initialBalance = testToken.balanceOf(address(metalToken));
+        uint256 initialBalance = token.balanceOf(address(metalToken));
 
         console.log("--- Liquidity Pool Creation Test ---");
         console.log("Contract's Initial Token Balance:", initialBalance);
@@ -137,10 +148,10 @@ contract MetalTokenTest is Test {
 
         // Create liquidity pool
         uint256 lpTokenId =
-            metalToken.createLiquidityPool(address(testToken), liquidityAmount, initialPricePerEth);
+            metalToken.createLiquidityPool(address(token), liquidityAmount, initialPricePerEth);
 
         // Get final balance
-        uint256 finalBalance = testToken.balanceOf(address(metalToken));
+        uint256 finalBalance = token.balanceOf(address(metalToken));
         uint256 actualChange = initialBalance - finalBalance;
 
         console.log("Contract's Remaining Token Balance:", finalBalance);
@@ -152,15 +163,6 @@ contract MetalTokenTest is Test {
             actualChange, liquidityAmount, 10, "Incorrect amount transferred to liquidity pool"
         );
 
-        vm.stopPrank();
-    }
-
-    function test_RevertWhen_LpAmountExceedsReserve() public {
-        uint256 tooMuchLiquidity = lpAmount + 1 ether;
-        // Expect revert when lpAmount exceeds reserve
-        vm.startPrank(owner);
-        vm.expectRevert(EXCEEDS_LP_RESERVE.selector);
-        metalToken.createLiquidityPool(address(testToken), tooMuchLiquidity, initialPricePerEth);
         vm.stopPrank();
     }
 
@@ -197,6 +199,6 @@ contract MetalTokenTest is Test {
 
         // Expect revert when deploying on unsupported chain
         vm.expectRevert(UNSUPPORTED_CHAIN.selector);
-        metalToken = new MetalToken(owner, lpAmount);
+        metalToken = new MetalToken(owner);
     }
 }
