@@ -157,8 +157,14 @@ contract MetalToken is Ownable, ERC721Holder {
         uint256 _totalSupply,
         address _merchant,
         uint256 _merchantAmount,
-        uint256 _lpReserve
+        uint256 _lpReserve,
+        uint256 _airdropReserve,
+        uint256 _rewardsReserve
     ) external returns (InstantLiquidityToken token) {
+        uint256 lpReserve = _lpReserve;
+        uint256 airDropReserve = _airdropReserve;
+        uint256 rewardsReserve = _rewardsReserve;
+        address signer = msg.sender;
         address tokenAddress;
         {
             Storage memory store = s;
@@ -178,7 +184,7 @@ contract MetalToken is Ownable, ERC721Holder {
         token = InstantLiquidityToken(tokenAddress);
 
         // Validate total amounts
-        if (_merchantAmount + _lpReserve > _totalSupply) {
+        if (_merchantAmount + _lpReserve + _airdropReserve + _rewardsReserve > _totalSupply) {
             revert INVALID_AMOUNT();
         }
 
@@ -187,13 +193,17 @@ contract MetalToken is Ownable, ERC721Holder {
             merchantTransfer(address(token), _merchant, _merchantAmount);
         }
 
-        // Handle LP creation if needed
-        uint256 lpTokenId;
-        if (_lpReserve > 0) {
-            lpTokenId = createLiquidityPool(address(token), _lpReserve, _initialPricePerEth);
+        // Handle airdropReserve transfer if needed
+        if (airDropReserve > 0) {
+            merchantTransfer(address(token), signer, airDropReserve);
         }
 
-        emit TokenDeployment(address(token), lpTokenId, _merchant, _name, _symbol, _lpReserve > 0);
+        // Handle rewardsReserve transfer if needed
+        if (rewardsReserve > 0) {
+            merchantTransfer(address(token), signer, rewardsReserve);
+        }
+
+        emit TokenDeployment(address(token), _merchant, _name, _symbol, _lpReserve > 0);
 
         return token;
     }
@@ -225,8 +235,14 @@ contract MetalToken is Ownable, ERC721Holder {
         onlyOwner
         returns (uint256 lpTokenId)
     {
+        uint256 lpReserve = _token.lpReserve(); //TODO: get lpReserve from token
+        
+        
         // Input validations
+
+        // check lp to be less then total 
         if (_lpAmount == 0) revert INVALID_AMOUNT();
+        if (lpReserve > tokenTotalSupply) revert EXCEEDS_LP_RESERVE();
         if (_initialPricePerEth > 0.98 ether) revert PRICE_TOO_HIGH();
 
         (address weth, INonfungiblePositionManager positionManager) = _getAddresses();
