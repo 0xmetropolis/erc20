@@ -12,7 +12,7 @@ contract DeployMetalToken is Script {
     function _run(address _factory) public returns (InstantLiquidityToken) {
         vm.broadcast();
         MetalToken factory = MetalToken(_factory);
-        InstantLiquidityToken token = factory.deployToken("", "", 0.01 ether, 1000_000_000, address(0), 0, 0);
+        InstantLiquidityToken token = factory.deployToken("", "", 1000_000_000, address(0), 0, 0, 0, 0);
 
         console.log("token", address(token));
 

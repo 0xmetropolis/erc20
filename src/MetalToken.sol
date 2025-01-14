@@ -13,6 +13,8 @@ error INVALID_AMOUNT();
 error UNSUPPORTED_CHAIN();
 error PRICE_TOO_HIGH();
 error EXCEEDS_LP_RESERVE();
+error INVALID_MERCHANT_ADDRESS();
+error INVALID_SIGNER();
 
 // NonfungiblePositionManager interface
 interface INonfungiblePositionManager {
@@ -61,6 +63,9 @@ contract MetalToken is Ownable, ERC721Holder {
         InstantLiquidityToken instantLiquidityToken;
     }
 
+    // Mappings
+    mapping(address => uint256) public lpReserves;
+
     // State variables
     Storage public s = Storage({
         deploymentNonce: 0,
@@ -70,11 +75,11 @@ contract MetalToken is Ownable, ERC721Holder {
     // Events
     event TokenDeployment(
         address indexed token,
-        uint256 indexed tokenId,
         address indexed recipient,
         string name,
         string symbol,
-        bool hasLiquidity
+        bool hasLiquidity,
+        uint256 lpReserve
     );
 
     event TokenDeployed(string name, string symbol, uint256 totalSupply, uint256 initialPrice);
@@ -86,7 +91,6 @@ contract MetalToken is Ownable, ERC721Holder {
     event FeesCollected(address indexed recipient, uint256 indexed nftId);
 
     constructor(address _owner) Ownable(_owner) {
-
         uint256 chainId = block.chainid;
         if (
             chainId != 1 // mainnet
@@ -144,7 +148,6 @@ contract MetalToken is Ownable, ERC721Holder {
      * @dev Deploys a new token with optional LP creation and distribution
      * @param _name Token name
      * @param _symbol Token symbol
-     * @param _initialPricePerEth Initial price in ETH
      * @param _totalSupply Total supply of tokens
      * @param _merchant Address to receive merchant allocation
      * @param _merchantAmount Amount for merchant
@@ -153,7 +156,6 @@ contract MetalToken is Ownable, ERC721Holder {
     function deployToken(
         string memory _name,
         string memory _symbol,
-        uint256 _initialPricePerEth,
         uint256 _totalSupply,
         address _merchant,
         uint256 _merchantAmount,
@@ -161,11 +163,12 @@ contract MetalToken is Ownable, ERC721Holder {
         uint256 _airdropReserve,
         uint256 _rewardsReserve
     ) external returns (InstantLiquidityToken token) {
-        uint256 lpReserve = _lpReserve;
-        uint256 airDropReserve = _airdropReserve;
-        uint256 rewardsReserve = _rewardsReserve;
         address signer = msg.sender;
         address tokenAddress;
+        // Validate total amounts
+        uint256 totalReserved = _merchantAmount + _lpReserve + _airdropReserve + _rewardsReserve;
+        if (totalReserved > _totalSupply) revert INVALID_AMOUNT();
+
         {
             Storage memory store = s;
             tokenAddress = Clones.cloneDeterministic(
@@ -173,7 +176,7 @@ contract MetalToken is Ownable, ERC721Holder {
                 keccak256(abi.encode(block.chainid, store.deploymentNonce))
             );
             InstantLiquidityToken(tokenAddress).initialize({
-                _mintTo: address(this), //TODO: Determine who should be the mintTo
+                _mintTo: address(this),
                 _totalSupply: _totalSupply,
                 _name: _name,
                 _symbol: _symbol
@@ -181,12 +184,12 @@ contract MetalToken is Ownable, ERC721Holder {
             s.deploymentNonce += 1;
         }
 
+        lpReserves[tokenAddress] = _lpReserve;
+
         token = InstantLiquidityToken(tokenAddress);
 
-        // Validate total amounts
-        if (_merchantAmount + _lpReserve + _airdropReserve + _rewardsReserve > _totalSupply) {
-            revert INVALID_AMOUNT();
-        }
+        if (_merchant == address(0)) revert INVALID_MERCHANT_ADDRESS();
+        if (signer == address(0)) revert INVALID_SIGNER();
 
         // Handle merchant transfer if needed
         if (_merchantAmount > 0) {
@@ -194,16 +197,16 @@ contract MetalToken is Ownable, ERC721Holder {
         }
 
         // Handle airdropReserve transfer if needed
-        if (airDropReserve > 0) {
-            merchantTransfer(address(token), signer, airDropReserve);
+        if (_airdropReserve > 0) {
+            merchantTransfer(address(token), signer, _airdropReserve);
         }
 
         // Handle rewardsReserve transfer if needed
-        if (rewardsReserve > 0) {
-            merchantTransfer(address(token), signer, rewardsReserve);
+        if (_rewardsReserve > 0) {
+            merchantTransfer(address(token), signer, _rewardsReserve);
         }
 
-        emit TokenDeployment(address(token), _merchant, _name, _symbol, _lpReserve > 0);
+        emit TokenDeployment(address(token), _merchant, _name, _symbol, _lpReserve > 0, _lpReserve);
 
         return token;
     }
@@ -226,35 +229,30 @@ contract MetalToken is Ownable, ERC721Holder {
     /**
      * @dev Creates a liquidity pool for a token
      * @param _token Token address
-     * @param _lpAmount Amount of tokens for liquidity
      * @param _initialPricePerEth Initial price in ETH
      * @return lpTokenId ID of the LP position NFT
      */
-    function createLiquidityPool(address _token, uint256 _lpAmount, uint256 _initialPricePerEth)
+    function createLiquidityPool(address _token, uint256 _initialPricePerEth)
         public
         onlyOwner
         returns (uint256 lpTokenId)
     {
-        uint256 lpReserve = _token.lpReserve(); //TODO: get lpReserve from token
-        
-        
-        // Input validations
-
-        // check lp to be less then total 
-        if (_lpAmount == 0) revert INVALID_AMOUNT();
-        if (lpReserve > tokenTotalSupply) revert EXCEEDS_LP_RESERVE();
         if (_initialPricePerEth > 0.98 ether) revert PRICE_TOO_HIGH();
+
+        // Retrieve lpReserve from the mapping
+        uint256 lpAmount = lpReserves[_token];
+        if (lpAmount == 0) revert INVALID_AMOUNT();
 
         (address weth, INonfungiblePositionManager positionManager) = _getAddresses();
 
-        InstantLiquidityToken(_token).approve(address(positionManager), _lpAmount);
+        InstantLiquidityToken(_token).approve(address(positionManager), lpAmount);
 
         (INonfungiblePositionManager.MintParams memory mintParams, uint160 initialSquareRootPrice) =
         _getMintParams({
             token: _token,
             weth: weth,
             initialPricePerEth: _initialPricePerEth,
-            liquidityIn: _lpAmount
+            liquidityIn: lpAmount
         });
 
         address token0 = _token < weth ? _token : weth;
@@ -267,9 +265,14 @@ contract MetalToken is Ownable, ERC721Holder {
             sqrtPriceX96: initialSquareRootPrice
         });
 
-        (lpTokenId,,,) = positionManager.mint({params: mintParams});
+        // Liquidity amount after initialization
+        uint256 liquidity;
 
-        emit LiquidityPoolCreated(_token, _lpAmount, lpTokenId, poolAddress);
+        (lpTokenId, liquidity,,) = positionManager.mint({params: mintParams});
+
+        lpReserves[_token] = 0;
+
+        emit LiquidityPoolCreated(_token, liquidity, lpTokenId, poolAddress);
 
         return lpTokenId;
     }

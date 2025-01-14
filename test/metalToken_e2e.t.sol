@@ -20,7 +20,6 @@ contract MetalTokenTest is Test {
     event MerchantTransfer(address indexed token, address indexed recipient, uint256 amount);
     event TokenDeployment(
         address indexed token,
-        uint256 indexed tokenId,
         address indexed recipient,
         string name,
         string symbol,
@@ -47,16 +46,17 @@ contract MetalTokenTest is Test {
     function setUp() public {
         metalToken = new MetalToken(owner);
 
-        // Deploy a test token with initial supply to MerchantToken contract
+        // Deploy a test token with initial supply to MerchantToken and lpReserve
         vm.startPrank(owner);
         testToken = metalToken.deployToken(
             "TestToken",
             "TEST",
-            0.01 ether,
             1_000_000 ether,
             address(metalToken), // Mint to merchant
             100_000 ether, // Amount for merchant
-            100_000 ether // LP reserve amount
+            0, // LP reserve amount
+            0, // Airdrop reserve
+            0 // Rewards reserve
         );
         vm.stopPrank();
     }
@@ -72,11 +72,12 @@ contract MetalTokenTest is Test {
         InstantLiquidityToken token = metalToken.deployToken(
             name,
             symbol,
-            initialPricePerEth,
             totalSupply,
             merchant,
             merchantAmount,
-            0 // No LP amount for this test
+            0, // LP reserve
+            0, // Airdrop reserve
+            0 // Rewards reserve
         );
 
         console.log("\nDeployed Token Details:");
@@ -85,7 +86,6 @@ contract MetalTokenTest is Test {
 
         assertEq(token.totalSupply(), totalSupply);
         assertEq(token.balanceOf(merchant), merchantAmount);
-
         vm.stopPrank();
     }
 
@@ -132,11 +132,12 @@ contract MetalTokenTest is Test {
         InstantLiquidityToken token = metalToken.deployToken(
             "LPToken",
             "LPT",
-            initialPricePerEth,
             totalSupply,
             address(metalToken),
             merchantAmount,
-            liquidityAmount // Set LP reserve amount
+            liquidityAmount, // LP reserve
+            0, // Airdrop reserve
+            0 // Rewards reserve
         );
 
         // Get initial balance
@@ -147,8 +148,7 @@ contract MetalTokenTest is Test {
         console.log("Requested Pool Liquidity Amount:", liquidityAmount);
 
         // Create liquidity pool
-        uint256 lpTokenId =
-            metalToken.createLiquidityPool(address(token), liquidityAmount, initialPricePerEth);
+        uint256 lpTokenId = metalToken.createLiquidityPool(address(token), initialPricePerEth);
 
         // Get final balance
         uint256 finalBalance = token.balanceOf(address(metalToken));
@@ -162,6 +162,7 @@ contract MetalTokenTest is Test {
         assertApproxEqAbs(
             actualChange, liquidityAmount, 10, "Incorrect amount transferred to liquidity pool"
         );
+        assertEq(metalToken.lpReserves(address(token)), 0, "LP reserve not reset to zero");
 
         vm.stopPrank();
     }
@@ -171,7 +172,7 @@ contract MetalTokenTest is Test {
         // Set the price to a high value and expect revert
         vm.startPrank(owner);
         vm.expectRevert(PRICE_TOO_HIGH.selector);
-        metalToken.createLiquidityPool(address(testToken), lpAmount, highPrice);
+        metalToken.createLiquidityPool(address(testToken), highPrice);
         vm.stopPrank();
     }
 
@@ -181,7 +182,7 @@ contract MetalTokenTest is Test {
         // Expect revert when non-owner calls createPool
         vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, merchant));
 
-        metalToken.createLiquidityPool(address(testToken), lpAmount, initialPricePerEth);
+        metalToken.createLiquidityPool(address(testToken), initialPricePerEth);
         vm.stopPrank();
     }
 
@@ -189,7 +190,7 @@ contract MetalTokenTest is Test {
         // Zero liquidity pool amount
         vm.startPrank(owner);
         vm.expectRevert(INVALID_AMOUNT.selector);
-        metalToken.createLiquidityPool(address(testToken), 0, initialPricePerEth);
+        metalToken.createLiquidityPool(address(testToken), initialPricePerEth);
         vm.stopPrank();
     }
 
@@ -200,5 +201,38 @@ contract MetalTokenTest is Test {
         // Expect revert when deploying on unsupported chain
         vm.expectRevert(UNSUPPORTED_CHAIN.selector);
         metalToken = new MetalToken(owner);
+    }
+
+    function test_fuzz_createLiquidityPool(uint256 randomLpAmount, uint256 randomPrice) public {
+        // Ensure the random values are within reasonable bounds
+        uint256 maxLpAmount = totalSupply - merchantAmount; // Ensure we account for merchant amount
+        uint256 maxPrice = 0.98 ether;
+        uint256 minPrice = 0.0001 ether;
+
+        // Constrain the random inputs using bound()
+        uint256 fuzzedLpAmount = bound(randomLpAmount, 1 ether, maxLpAmount);
+        uint256 fuzzedPrice = bound(randomPrice, minPrice, maxPrice);
+
+        console.log("Fuzz Test Inputs - LP Amount:", fuzzedLpAmount, "Price:", fuzzedPrice);
+
+        // Deploy a new token with the random LP reserve
+        vm.startPrank(owner);
+        InstantLiquidityToken token = metalToken.deployToken(
+            "FuzzToken",
+            "FZT",
+            totalSupply,
+            address(metalToken),
+            merchantAmount,
+            fuzzedLpAmount, // Random LP reserve
+            0, // Airdrop reserve
+            0 // Rewards reserve
+        );
+
+        // Create liquidity pool with constrained price
+        metalToken.createLiquidityPool(address(token), fuzzedPrice);
+
+        // Verify LP reserve is set to 0 after pool creation
+        assertEq(metalToken.lpReserves(address(token)), 0, "LP reserve not reset to zero");
+        vm.stopPrank();
     }
 }
