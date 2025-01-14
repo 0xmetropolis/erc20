@@ -5,7 +5,6 @@ import {Test, console} from "forge-std/Test.sol";
 import {MetalToken} from "../src/MetalToken.sol";
 import {InstantLiquidityToken} from "../src/InstantLiquidityToken.sol";
 import {INonfungiblePositionManager} from "../src/TokenFactory.sol";
-import {getAddresses} from "../src/lib/addresses.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Custom errors
