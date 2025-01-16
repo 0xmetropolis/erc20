@@ -17,7 +17,7 @@ error EXCEEDS_LP_RESERVE();
 error INVALID_MERCHANT_ADDRESS();
 error INVALID_SIGNER();
 
-contract MetalToken is Ownable, ERC721Holder {
+contract MetalFactory is Ownable, ERC721Holder {
     struct Storage {
         uint96 deploymentNonce;
         InstantLiquidityToken instantLiquidityToken;
