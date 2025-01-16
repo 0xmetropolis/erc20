@@ -9,7 +9,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
-
 // Custom errors
 error INVALID_AMOUNT();
 error UNSUPPORTED_CHAIN();
