@@ -23,7 +23,6 @@ contract MetalToken is Ownable, ERC721Holder {
         InstantLiquidityToken instantLiquidityToken;
     }
 
-    // Mappings
     mapping(address => uint256) public lpReserves;
 
     // State variables
