@@ -22,7 +22,7 @@ contract MetalFactory is Ownable, ERC721Holder {
         uint96 deploymentNonce;
         InstantLiquidityToken instantLiquidityToken;
     }
-
+    // Mappings
     mapping(address => uint256) public lpReserves;
 
     // State variables
