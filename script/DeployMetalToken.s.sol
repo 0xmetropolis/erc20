@@ -6,7 +6,7 @@ import {MetalFactory, InstantLiquidityToken} from "../src/MetalFactory.sol";
 
 contract DeployMetalToken is Script {
     function run() public {
-        _run(0xE8B7bF3359d16631c744CA6e6dc21bF119a5A5a6);
+        _run(0x371776D90C335Acc67dCd5b8A83a5b974d473d39);
     }
 
     function _run(address _factory) public returns (InstantLiquidityToken) {
