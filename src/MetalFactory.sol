@@ -16,6 +16,7 @@ error PRICE_TOO_HIGH();
 error EXCEEDS_LP_RESERVE();
 error INVALID_MERCHANT_ADDRESS();
 error INVALID_SIGNER();
+error NOT_TOKEN_CREATOR();
 
 contract MetalFactory is Ownable, ERC721Holder {
     struct Storage {
@@ -23,13 +24,21 @@ contract MetalFactory is Ownable, ERC721Holder {
         InstantLiquidityToken instantLiquidityToken;
     }
     // Mappings
+
     mapping(address => uint256) public lpReserves;
+    mapping(address => address) public tokenCreator;
 
     // State variables
     Storage public s = Storage({
         deploymentNonce: 0,
         instantLiquidityToken: InstantLiquidityToken(0xD74D14ebe305c93D023C966640788f05593F0fdE)
     });
+
+    // modifiers
+    modifier onlyTokenCreator(address token) {
+        if (tokenCreator[token] != msg.sender) revert NOT_TOKEN_CREATOR();
+        _;
+    }
 
     // Events
     event TokenDeployment(
@@ -144,6 +153,7 @@ contract MetalFactory is Ownable, ERC721Holder {
         }
 
         lpReserves[tokenAddress] = _lpReserve;
+        tokenCreator[tokenAddress] = signer;
 
         token = InstantLiquidityToken(tokenAddress);
 
@@ -152,39 +162,24 @@ contract MetalFactory is Ownable, ERC721Holder {
 
         // Handle merchant transfer if needed
         if (_creatorAmount > 0) {
-            merchantTransfer(address(token), _creator, _creatorAmount);
+            InstantLiquidityToken(token).transfer(_creator, _creatorAmount);
         }
 
         // Handle airdropReserve transfer if needed
         if (_airdropReserve > 0) {
-            merchantTransfer(address(token), signer, _airdropReserve);
+            InstantLiquidityToken(token).transfer(signer, _airdropReserve);
         }
 
         // Handle rewardsReserve transfer if needed
         if (_rewardsReserve > 0) {
-            merchantTransfer(address(token), signer, _rewardsReserve);
+            InstantLiquidityToken(token).transfer(signer, _rewardsReserve);
         }
 
-        // lpReserve remains on the factory until createLiquidityPool is called  
+        // lpReserve remains on the factory until createLiquidityPool is called
 
         emit TokenDeployment(address(token), _creator, _name, _symbol, _lpReserve > 0, _lpReserve);
 
         return token;
-    }
-
-    /**
-     * @dev Transfers tokens to a merchant
-     * @param _token Token address
-     * @param _creator Recipient address
-     * @param _amount Amount to transfer
-     */
-    function merchantTransfer(address _token, address _creator, uint256 _amount)
-        public
-        onlyOwner
-    {
-        if (_amount == 0) revert INVALID_AMOUNT();
-
-        InstantLiquidityToken(_token).transfer(_creator, _amount);
     }
 
     /**
@@ -195,7 +190,7 @@ contract MetalFactory is Ownable, ERC721Holder {
      */
     function createLiquidityPool(address _token, uint256 _initialPricePerEth)
         public
-        onlyOwner
+        onlyTokenCreator(_token)
         returns (uint256 lpTokenId)
     {
         if (_initialPricePerEth > 0.98 ether) revert PRICE_TOO_HIGH();
