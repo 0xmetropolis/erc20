@@ -14,19 +14,18 @@ error INVALID_AMOUNT();
 error UNSUPPORTED_CHAIN();
 error PRICE_TOO_HIGH();
 error EXCEEDS_LP_RESERVE();
-error INVALID_MERCHANT_ADDRESS();
 error INVALID_SIGNER();
-error NOT_TOKEN_CREATOR();
+error NOT_TOKEN_DEPLOYER();
 
 contract MetalFactory is Ownable, ERC721Holder {
     struct Storage {
         uint96 deploymentNonce;
         InstantLiquidityToken instantLiquidityToken;
     }
-    // Mappings
 
+    // Mappings
     mapping(address => uint256) public lpReserves;
-    mapping(address => address) public tokenCreator;
+    mapping(address => address) public tokenDeployer;
 
     // State variables
     Storage public s = Storage({
@@ -35,8 +34,8 @@ contract MetalFactory is Ownable, ERC721Holder {
     });
 
     // modifiers
-    modifier onlyTokenCreator(address token) {
-        if (tokenCreator[token] != msg.sender) revert NOT_TOKEN_CREATOR();
+    modifier onlyTokenDeployer(address token) {
+        if (tokenDeployer[token] != msg.sender) revert NOT_TOKEN_DEPLOYER();
         _;
     }
 
@@ -153,11 +152,10 @@ contract MetalFactory is Ownable, ERC721Holder {
         }
 
         lpReserves[tokenAddress] = _lpReserve;
-        tokenCreator[tokenAddress] = signer;
+        tokenDeployer[tokenAddress] = signer;
 
         token = InstantLiquidityToken(tokenAddress);
 
-        if (_creator == address(0)) revert INVALID_MERCHANT_ADDRESS();
         if (signer == address(0)) revert INVALID_SIGNER();
 
         // Handle merchant transfer if needed
@@ -190,7 +188,7 @@ contract MetalFactory is Ownable, ERC721Holder {
      */
     function createLiquidityPool(address _token, uint256 _initialPricePerEth)
         public
-        onlyTokenCreator(_token)
+        onlyTokenDeployer(_token)
         returns (uint256 lpTokenId)
     {
         if (_initialPricePerEth > 0.98 ether) revert PRICE_TOO_HIGH();

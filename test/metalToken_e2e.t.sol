@@ -12,7 +12,7 @@ error UNSUPPORTED_CHAIN();
 error PRICE_TOO_HIGH();
 error EXCEEDS_LP_RESERVE();
 error OwnableUnauthorizedAccount(address account);
-error NOT_TOKEN_CREATOR();
+error NOT_TOKEN_DEPLOYER();
 
 contract MetalTokenTest is Test {
     // Events
@@ -149,7 +149,7 @@ contract MetalTokenTest is Test {
         vm.startPrank(anotherAddress);
 
         // Expect revert when a non-creator tries to call the function
-        vm.expectRevert(NOT_TOKEN_CREATOR.selector);
+        vm.expectRevert(NOT_TOKEN_DEPLOYER.selector);
 
         metalFactory.createLiquidityPool(tokenAddress, lpAmount);
         vm.stopPrank();
