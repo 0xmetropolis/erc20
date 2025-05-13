@@ -41,9 +41,30 @@ interface INonfungiblePositionManager {
         returns (uint256 amount0, uint256 amount1);
 }
 
+interface ISwapRouter {
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
+
+    function exactInputSingle(ExactInputSingleParams calldata params)
+        external
+        payable
+        returns (uint256 amountOut);
+}
+
 function getNetworkAddresses()
     view
-    returns (address weth, INonfungiblePositionManager nonFungiblePositionManager)
+    returns (
+        address weth,
+        INonfungiblePositionManager nonFungiblePositionManager,
+        ISwapRouter swapRouter
+    )
 {
     uint256 chainId = block.chainid;
     // Mainnet, Goerli, Arbitrum, Optimism, Polygon
@@ -51,13 +72,22 @@ function getNetworkAddresses()
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
 
     // mainnet
-    if (chainId == 1) weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    if (chainId == 1) {
+        weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        swapRouter = ISwapRouter(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
+    }
     // goerli
     if (chainId == 5) weth = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
     // arbitrum
-    if (chainId == 42161) weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+    if (chainId == 42161) {
+        weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        swapRouter = ISwapRouter(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
+    }
     // optimism
-    if (chainId == 10) weth = 0x4200000000000000000000000000000000000006;
+    if (chainId == 10) {
+        weth = 0x4200000000000000000000000000000000000006;
+        swapRouter = ISwapRouter(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
+    }
     // polygon
     if (chainId == 137) weth = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
     // bnb
@@ -71,18 +101,21 @@ function getNetworkAddresses()
         weth = 0x4200000000000000000000000000000000000006;
         nonFungiblePositionManager =
             INonfungiblePositionManager(0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1);
+        swapRouter = ISwapRouter(0x2626664c2603336E57B271c5C0b26F421741e481);
     }
     // base sepolia
     if (chainId == 84532) {
         weth = 0x4200000000000000000000000000000000000006;
         nonFungiblePositionManager =
             INonfungiblePositionManager(0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2);
+        swapRouter = ISwapRouter(0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4);
     }
     // sepolia
     if (chainId == 11155111) {
         weth = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
         nonFungiblePositionManager =
             INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
+        swapRouter = ISwapRouter(0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E);
     }
     // zora
     if (chainId == 7777777) {
